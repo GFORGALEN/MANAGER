@@ -1,0 +1,6 @@
+@ConstructionManagement_HostAddress = http://localhost:5168
+
+GET {{ConstructionManagement_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
