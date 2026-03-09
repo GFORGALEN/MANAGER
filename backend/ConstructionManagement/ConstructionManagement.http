@@ -4,3 +4,23 @@ GET {{ConstructionManagement_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+GET {{ConstructionManagement_HostAddress}}/api/test/ping
+Accept: application/json
+
+###
+
+GET {{ConstructionManagement_HostAddress}}/swagger/v1/swagger.json
+Accept: application/json
+
+###
+
+POST {{ConstructionManagement_HostAddress}}/api/test/echo
+Content-Type: application/json
+
+{
+  "name": "swagger-test",
+  "message": "post endpoint is working"
+}
+
+###
