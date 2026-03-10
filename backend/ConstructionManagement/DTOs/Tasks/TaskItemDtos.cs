@@ -24,6 +24,11 @@ namespace ConstructionManagement.DTOs.Tasks
         public string Title { get; set; } = string.Empty;
 
         /// <summary>
+        /// Related project name.
+        /// </summary>
+        public string ProjectName { get; set; } = string.Empty;
+
+        /// <summary>
         /// Optional detailed description of the task.
         /// </summary>
         public string? Description { get; set; }
@@ -32,6 +37,16 @@ namespace ConstructionManagement.DTOs.Tasks
         /// Current task status.
         /// </summary>
         public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Assigned worker identifier when the task is assigned.
+        /// </summary>
+        public Guid? AssignedUserId { get; set; }
+
+        /// <summary>
+        /// Assigned worker display name when available.
+        /// </summary>
+        public string? AssignedUserName { get; set; }
 
         /// <summary>
         /// Planned due date for the task.
@@ -75,6 +90,26 @@ namespace ConstructionManagement.DTOs.Tasks
         public string Status { get; set; } = string.Empty;
 
         /// <summary>
+        /// Related project name.
+        /// </summary>
+        public string ProjectName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Related project address.
+        /// </summary>
+        public string ProjectAddress { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Assigned worker identifier when the task is assigned.
+        /// </summary>
+        public Guid? AssignedUserId { get; set; }
+
+        /// <summary>
+        /// Assigned worker display name when available.
+        /// </summary>
+        public string? AssignedUserName { get; set; }
+
+        /// <summary>
         /// Planned due date for the task.
         /// </summary>
         public DateTime DueDate { get; set; }
@@ -83,6 +118,29 @@ namespace ConstructionManagement.DTOs.Tasks
         /// UTC timestamp when the task was created.
         /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Project attachments available to the worker for reference.
+        /// </summary>
+        public List<TaskAttachmentDto> Attachments { get; set; } = [];
+    }
+
+    /// <summary>
+    /// Attachment summary nested under task detail responses.
+    /// </summary>
+    public class TaskAttachmentDto
+    {
+        public Guid AttachmentId { get; set; }
+
+        public string FileName { get; set; } = string.Empty;
+
+        public string FilePath { get; set; } = string.Empty;
+
+        public string? ContentType { get; set; }
+
+        public long FileSize { get; set; }
+
+        public DateTime UploadedAt { get; set; }
     }
 
     /// <summary>
@@ -107,6 +165,11 @@ namespace ConstructionManagement.DTOs.Tasks
         /// </summary>
         [Required]
         public DateTime DueDate { get; set; }
+
+        /// <summary>
+        /// Optional contractor user ID assigned to the task.
+        /// </summary>
+        public Guid? AssignedUserId { get; set; }
     }
 
     /// <summary>
@@ -144,6 +207,11 @@ namespace ConstructionManagement.DTOs.Tasks
         /// </summary>
         [Required]
         public DateTime DueDate { get; set; }
+
+        /// <summary>
+        /// Optional contractor user ID assigned to the task.
+        /// </summary>
+        public Guid? AssignedUserId { get; set; }
     }
 
     public static class TaskItemDtoMappings
@@ -155,8 +223,11 @@ namespace ConstructionManagement.DTOs.Tasks
                 TaskItemId = taskItem.TaskItemId,
                 ProjectId = taskItem.ProjectId,
                 Title = taskItem.Title,
+                ProjectName = taskItem.Project?.Name ?? string.Empty,
                 Description = taskItem.Description,
                 Status = taskItem.Status,
+                AssignedUserId = taskItem.AssignedUserId,
+                AssignedUserName = taskItem.AssignedUser?.Name,
                 DueDate = taskItem.DueDate,
                 CreatedAt = taskItem.CreatedAt
             };
@@ -171,8 +242,23 @@ namespace ConstructionManagement.DTOs.Tasks
                 Title = taskItem.Title,
                 Description = taskItem.Description,
                 Status = taskItem.Status,
+                ProjectName = taskItem.Project?.Name ?? string.Empty,
+                ProjectAddress = taskItem.Project?.Address ?? string.Empty,
+                AssignedUserId = taskItem.AssignedUserId,
+                AssignedUserName = taskItem.AssignedUser?.Name,
                 DueDate = taskItem.DueDate,
-                CreatedAt = taskItem.CreatedAt
+                CreatedAt = taskItem.CreatedAt,
+                Attachments = taskItem.Project?.Attachments
+                    .Select(attachment => new TaskAttachmentDto
+                    {
+                        AttachmentId = attachment.AttachmentId,
+                        FileName = attachment.FileName,
+                        FilePath = attachment.FilePath,
+                        ContentType = attachment.ContentType,
+                        FileSize = attachment.FileSize,
+                        UploadedAt = attachment.UploadedAt
+                    })
+                    .ToList() ?? []
             };
         }
     }

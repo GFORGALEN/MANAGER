@@ -14,6 +14,11 @@ namespace ConstructionManagement.DTOs.Projects
         public Guid ProjectId { get; set; }
 
         /// <summary>
+        /// Internal project code.
+        /// </summary>
+        public string Code { get; set; } = string.Empty;
+
+        /// <summary>
         /// Project name shown to users.
         /// </summary>
         public string Name { get; set; } = string.Empty;
@@ -22,6 +27,16 @@ namespace ConstructionManagement.DTOs.Projects
         /// Project site address or location.
         /// </summary>
         public string Address { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Customer or owner name.
+        /// </summary>
+        public string? ClientName { get; set; }
+
+        /// <summary>
+        /// Project status.
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
 
         /// <summary>
         /// UTC timestamp when the project was created.
@@ -40,6 +55,11 @@ namespace ConstructionManagement.DTOs.Projects
         public Guid ProjectId { get; set; }
 
         /// <summary>
+        /// Internal project code.
+        /// </summary>
+        public string Code { get; set; } = string.Empty;
+
+        /// <summary>
         /// Project name shown to users.
         /// </summary>
         public string Name { get; set; } = string.Empty;
@@ -48,6 +68,36 @@ namespace ConstructionManagement.DTOs.Projects
         /// Project site address or location.
         /// </summary>
         public string Address { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Longer project summary.
+        /// </summary>
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Customer or owner name.
+        /// </summary>
+        public string? ClientName { get; set; }
+
+        /// <summary>
+        /// Project lifecycle status.
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Approved budget value when available.
+        /// </summary>
+        public decimal? Budget { get; set; }
+
+        /// <summary>
+        /// Planned start date.
+        /// </summary>
+        public DateTime? StartDate { get; set; }
+
+        /// <summary>
+        /// Planned finish date.
+        /// </summary>
+        public DateTime? EndDate { get; set; }
 
         /// <summary>
         /// UTC timestamp when the project was created.
@@ -61,6 +111,13 @@ namespace ConstructionManagement.DTOs.Projects
     public class CreateProjectDto
     {
         /// <summary>
+        /// Internal project code.
+        /// </summary>
+        [Required]
+        [MinLength(1)]
+        public required string Code { get; set; }
+
+        /// <summary>
         /// Project name shown in the system.
         /// </summary>
         [Required]
@@ -73,6 +130,39 @@ namespace ConstructionManagement.DTOs.Projects
         [Required]
         [MinLength(1)]
         public required string Address { get; set; }
+
+        /// <summary>
+        /// Longer project summary.
+        /// </summary>
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Customer or owner name.
+        /// </summary>
+        public string? ClientName { get; set; }
+
+        /// <summary>
+        /// Current project status.
+        /// </summary>
+        [Required]
+        [MinLength(1)]
+        public string Status { get; set; } = "Planning";
+
+        /// <summary>
+        /// Approved budget value when available.
+        /// </summary>
+        [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+        public decimal? Budget { get; set; }
+
+        /// <summary>
+        /// Planned start date.
+        /// </summary>
+        public DateTime? StartDate { get; set; }
+
+        /// <summary>
+        /// Planned finish date.
+        /// </summary>
+        public DateTime? EndDate { get; set; }
     }
 
     /// <summary>
@@ -80,6 +170,13 @@ namespace ConstructionManagement.DTOs.Projects
     /// </summary>
     public class UpdateProjectDto
     {
+        /// <summary>
+        /// Updated internal project code.
+        /// </summary>
+        [Required]
+        [MinLength(1)]
+        public required string Code { get; set; }
+
         /// <summary>
         /// Updated project name.
         /// </summary>
@@ -93,6 +190,39 @@ namespace ConstructionManagement.DTOs.Projects
         [Required]
         [MinLength(1)]
         public required string Address { get; set; }
+
+        /// <summary>
+        /// Updated project summary.
+        /// </summary>
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Updated customer or owner name.
+        /// </summary>
+        public string? ClientName { get; set; }
+
+        /// <summary>
+        /// Updated project status.
+        /// </summary>
+        [Required]
+        [MinLength(1)]
+        public required string Status { get; set; }
+
+        /// <summary>
+        /// Updated approved budget value.
+        /// </summary>
+        [Range(typeof(decimal), "0", "79228162514264337593543950335")]
+        public decimal? Budget { get; set; }
+
+        /// <summary>
+        /// Updated planned start date.
+        /// </summary>
+        public DateTime? StartDate { get; set; }
+
+        /// <summary>
+        /// Updated planned finish date.
+        /// </summary>
+        public DateTime? EndDate { get; set; }
     }
 
     public static class ProjectDtoMappings
@@ -102,8 +232,11 @@ namespace ConstructionManagement.DTOs.Projects
             return new ProjectListDto
             {
                 ProjectId = project.ProjectId,
+                Code = project.Code,
                 Name = project.Name,
                 Address = project.Address,
+                ClientName = project.ClientName,
+                Status = project.Status,
                 CreatedAt = project.CreatedAt
             };
         }
@@ -113,8 +246,15 @@ namespace ConstructionManagement.DTOs.Projects
             return new ProjectDetailDto
             {
                 ProjectId = project.ProjectId,
+                Code = project.Code,
                 Name = project.Name,
                 Address = project.Address,
+                Description = project.Description,
+                ClientName = project.ClientName,
+                Status = project.Status,
+                Budget = project.Budget,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
                 CreatedAt = project.CreatedAt
             };
         }

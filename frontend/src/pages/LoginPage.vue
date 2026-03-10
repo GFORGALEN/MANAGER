@@ -16,7 +16,7 @@
       />
 
       <a-form :model="formState" layout="vertical">
-        <a-form-item label="Username" name="username">
+        <a-form-item label="Username or Email" name="username">
           <a-input
             v-model:value="formState.username"
             placeholder="admin"
@@ -48,6 +48,12 @@
 
       <a-divider />
 
+      <a-button block @click="router.push({ name: 'register' })">
+        Create Contractor Account
+      </a-button>
+
+      <a-divider />
+
       <a-space direction="vertical" size="small">
         <span><strong>Demo accounts</strong></span>
         <span>`admin / Admin123!`</span>
@@ -63,8 +69,8 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import api from '@/services/api'
-import { setSession } from '@/services/auth'
-import type { AuthResponse, LoginRequest } from '@/types/auth'
+import { clearSession, getDefaultRouteForRole, setCurrentUser, setToken } from '@/services/auth'
+import type { AuthResponse, CurrentUser, LoginRequest } from '@/types/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -83,11 +89,18 @@ async function handleSubmit() {
 
   try {
     const { data } = await api.post<AuthResponse>('/auth/login', formState)
-    setSession(data.token, data.username, data.role)
+    setToken(data.token)
 
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/projects'
+    const profileResponse = await api.get<CurrentUser>('/auth/me')
+    setCurrentUser(profileResponse.data)
+
+    const redirect = typeof route.query.redirect === 'string'
+      ? route.query.redirect
+      : getDefaultRouteForRole(profileResponse.data.role)
+
     router.push(redirect)
   } catch (error) {
+    clearSession()
     errorMessage.value = 'Login failed. Check username, password, or backend availability.'
   } finally {
     submitting.value = false

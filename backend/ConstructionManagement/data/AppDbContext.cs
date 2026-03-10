@@ -22,11 +22,21 @@ namespace ConstructionManagement.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Project>()
+                .Property(project => project.Budget)
+                .HasPrecision(18, 2);
+
             modelBuilder.Entity<TaskItem>()
                 .HasOne(taskItem => taskItem.Project)
                 .WithMany(project => project.TaskItems)
                 .HasForeignKey(taskItem => taskItem.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskItem>()
+                .HasOne(taskItem => taskItem.AssignedUser)
+                .WithMany(user => user.AssignedTasks)
+                .HasForeignKey(taskItem => taskItem.AssignedUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Variation>()
                 .Property(variation => variation.Amount)
@@ -46,6 +56,10 @@ namespace ConstructionManagement.Data
 
             modelBuilder.Entity<User>()
                 .HasIndex(user => user.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(user => user.Email)
                 .IsUnique();
         }
     }

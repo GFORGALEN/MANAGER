@@ -24,7 +24,11 @@ namespace ConstructionManagement.Services
             if (!string.IsNullOrWhiteSpace(query.Keyword))
             {
                 var keyword = query.Keyword.Trim();
-                projects = projects.Where(project => project.Name.Contains(keyword) || project.Address.Contains(keyword));
+                projects = projects.Where(project =>
+                    project.Name.Contains(keyword) ||
+                    project.Code.Contains(keyword) ||
+                    project.Address.Contains(keyword) ||
+                    (project.ClientName != null && project.ClientName.Contains(keyword)));
             }
 
             projects = (query.SortBy?.ToLowerInvariant(), query.SortOrder?.ToLowerInvariant()) switch
@@ -65,8 +69,15 @@ namespace ConstructionManagement.Services
             var project = new Project
             {
                 ProjectId = Guid.NewGuid(),
+                Code = request.Code.Trim(),
                 Name = request.Name.Trim(),
                 Address = request.Address.Trim(),
+                Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+                ClientName = string.IsNullOrWhiteSpace(request.ClientName) ? null : request.ClientName.Trim(),
+                Status = request.Status.Trim(),
+                Budget = request.Budget,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -86,8 +97,15 @@ namespace ConstructionManagement.Services
                 return null;
             }
 
+            project.Code = request.Code.Trim();
             project.Name = request.Name.Trim();
             project.Address = request.Address.Trim();
+            project.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            project.ClientName = string.IsNullOrWhiteSpace(request.ClientName) ? null : request.ClientName.Trim();
+            project.Status = request.Status.Trim();
+            project.Budget = request.Budget;
+            project.StartDate = request.StartDate;
+            project.EndDate = request.EndDate;
 
             await _context.SaveChangesAsync(cancellationToken);
             return project.ToDetailDto();

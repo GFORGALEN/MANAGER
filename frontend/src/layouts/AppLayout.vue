@@ -1,9 +1,10 @@
 <template>
-  <a-layout style="min-height: 100vh">
+  <a-layout :class="roleThemeClass" style="min-height: 100vh">
     <a-layout-sider
       v-model:collapsed="collapsed"
       collapsible
       breakpoint="lg"
+      collapsed-width="0"
       theme="light"
       width="240"
       style="border-inline-end: 1px solid #e5e7eb"
@@ -21,29 +22,53 @@
         :selected-keys="selectedKeys"
         @click="handleMenuClick"
       >
-        <a-menu-item key="/projects">
+        <a-menu-item v-if="isManagerView" key="/projects">
           <template #icon>
             <ProjectOutlined />
           </template>
           Projects
         </a-menu-item>
-        <a-menu-item key="/tasks">
+        <a-menu-item v-if="isManagerView" key="/tasks">
           <template #icon>
             <CheckSquareOutlined />
           </template>
           Tasks
         </a-menu-item>
-        <a-menu-item key="/variations">
+        <a-menu-item v-if="isManagerView" key="/variations">
           <template #icon>
             <ProfileOutlined />
           </template>
           Variations
         </a-menu-item>
-        <a-menu-item key="/attachments">
+        <a-menu-item v-if="isManagerView" key="/attachments">
           <template #icon>
             <PaperClipOutlined />
           </template>
           Attachments
+        </a-menu-item>
+        <a-menu-item v-if="isManagerView" key="/users">
+          <template #icon>
+            <TeamOutlined />
+          </template>
+          Users
+        </a-menu-item>
+        <a-menu-item v-if="isWorkerView" key="/worker/dashboard">
+          <template #icon>
+            <AppstoreOutlined />
+          </template>
+          Dashboard
+        </a-menu-item>
+        <a-menu-item v-if="isWorkerView" key="/worker/tasks">
+          <template #icon>
+            <CheckSquareOutlined />
+          </template>
+          My Tasks
+        </a-menu-item>
+        <a-menu-item v-if="isWorkerView" key="/worker/profile">
+          <template #icon>
+            <UserOutlined />
+          </template>
+          Profile
         </a-menu-item>
       </a-menu>
     </a-layout-sider>
@@ -56,10 +81,10 @@
         </div>
 
         <a-space>
-          <a-tag color="blue">{{ currentUser.role }}</a-tag>
+          <a-tag color="blue">{{ currentUser?.role ?? 'Unknown' }}</a-tag>
           <a-dropdown>
             <a-button>
-              {{ currentUser.username }}
+              {{ currentUserLabel }}
               <DownOutlined />
             </a-button>
             <template #overlay>
@@ -82,20 +107,28 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter, RouterView } from 'vue-router'
 import {
+  AppstoreOutlined,
   CheckSquareOutlined,
   DownOutlined,
   PaperClipOutlined,
   ProfileOutlined,
   ProjectOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons-vue'
 
-import { clearSession, getCurrentUser } from '@/services/auth'
+import { clearSession, getCurrentRole, getCurrentUser, getCurrentUserLabel } from '@/services/auth'
 
 const route = useRoute()
 const router = useRouter()
 const collapsed = ref(false)
 
 const currentUser = computed(() => getCurrentUser())
+const currentUserLabel = computed(() => getCurrentUserLabel())
+const currentRole = computed(() => getCurrentRole())
+const isWorkerView = computed(() => getCurrentRole() === 'Contractor')
+const isManagerView = computed(() => !isWorkerView.value)
+const roleThemeClass = computed(() => `role-theme-${(currentRole.value ?? 'guest').toLowerCase()}`)
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/projects')) {
     return ['/projects']
@@ -111,6 +144,22 @@ const selectedKeys = computed(() => {
 
   if (route.path.startsWith('/attachments')) {
     return ['/attachments']
+  }
+
+  if (route.path.startsWith('/users')) {
+    return ['/users']
+  }
+
+  if (route.path.startsWith('/worker/dashboard')) {
+    return ['/worker/dashboard']
+  }
+
+  if (route.path.startsWith('/worker/tasks')) {
+    return ['/worker/tasks']
+  }
+
+  if (route.path.startsWith('/worker/profile')) {
+    return ['/worker/profile']
   }
 
   return []
@@ -142,7 +191,7 @@ function logout() {
   width: 40px;
   height: 40px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #1677ff, #0f4fb8);
+  background: linear-gradient(135deg, var(--role-color-start, #1677ff), var(--role-color-end, #0f4fb8));
   color: #fff;
   font-weight: 700;
 }
@@ -167,7 +216,8 @@ function logout() {
   padding: 20px 24px;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid var(--role-border, #e5e7eb);
+  box-shadow: inset 0 4px 0 0 var(--role-soft, transparent);
 }
 
 .header-title {
@@ -182,5 +232,34 @@ function logout() {
 
 .content-area {
   padding: 0;
+}
+
+.role-theme-admin {
+  --role-color-start: #b91c1c;
+  --role-color-end: #f97316;
+  --role-border: #fdba74;
+  --role-soft: rgba(249, 115, 22, 0.15);
+}
+
+.role-theme-pm {
+  --role-color-start: #0f766e;
+  --role-color-end: #2563eb;
+  --role-border: #93c5fd;
+  --role-soft: rgba(37, 99, 235, 0.12);
+}
+
+.role-theme-contractor {
+  --role-color-start: #15803d;
+  --role-color-end: #65a30d;
+  --role-border: #86efac;
+  --role-soft: rgba(101, 163, 13, 0.14);
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 16px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 </style>

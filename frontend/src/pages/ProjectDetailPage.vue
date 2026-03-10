@@ -4,7 +4,7 @@
       <a-card class="page-card" :bordered="false" :loading="projectLoading">
         <template #title>Project Detail</template>
         <template #extra>
-          <a-space>
+          <a-space class="detail-actions">
             <a-button @click="openEditProjectModal" :disabled="!project">Edit Project</a-button>
             <a-popconfirm title="Delete this project?" ok-text="Delete" cancel-text="Cancel" @confirm="deleteProject">
               <a-button danger :disabled="!project">Delete</a-button>
@@ -12,12 +12,45 @@
           </a-space>
         </template>
 
-        <a-descriptions v-if="project" :column="1" bordered>
+        <a-descriptions v-if="project" class="project-desktop" :column="1" bordered>
           <a-descriptions-item label="Project ID">{{ project.projectId }}</a-descriptions-item>
+          <a-descriptions-item label="Code">{{ project.code }}</a-descriptions-item>
           <a-descriptions-item label="Name">{{ project.name }}</a-descriptions-item>
           <a-descriptions-item label="Address">{{ project.address }}</a-descriptions-item>
+          <a-descriptions-item label="Client">{{ project.clientName || 'Not set' }}</a-descriptions-item>
+          <a-descriptions-item label="Status">
+            <a-tag :color="projectStatusColor(project.status)">{{ project.status }}</a-tag>
+          </a-descriptions-item>
+          <a-descriptions-item label="Budget">{{ formatCurrency(project.budget ?? 0) }}</a-descriptions-item>
+          <a-descriptions-item label="Start Date">{{ formatOptionalDate(project.startDate) }}</a-descriptions-item>
+          <a-descriptions-item label="End Date">{{ formatOptionalDate(project.endDate) }}</a-descriptions-item>
+          <a-descriptions-item label="Description">{{ project.description || 'No description' }}</a-descriptions-item>
           <a-descriptions-item label="Created At">{{ formatDate(project.createdAt) }}</a-descriptions-item>
         </a-descriptions>
+
+        <div v-if="project" class="project-mobile">
+          <a-space direction="vertical" style="width: 100%">
+            <a-card size="small">
+              <div class="mobile-project-header">
+                <div>
+                  <strong>{{ project.name }}</strong>
+                  <div class="muted">#{{ project.code }}</div>
+                </div>
+                <a-tag :color="projectStatusColor(project.status)">{{ project.status }}</a-tag>
+              </div>
+            </a-card>
+            <a-card size="small">
+              <a-space direction="vertical" style="width: 100%">
+                <span><strong>Address:</strong> {{ project.address }}</span>
+                <span><strong>Client:</strong> {{ project.clientName || 'Not set' }}</span>
+                <span><strong>Budget:</strong> {{ formatCurrency(project.budget ?? 0) }}</span>
+                <span><strong>Start:</strong> {{ formatOptionalDate(project.startDate) }}</span>
+                <span><strong>End:</strong> {{ formatOptionalDate(project.endDate) }}</span>
+                <span><strong>Description:</strong> {{ project.description || 'No description' }}</span>
+              </a-space>
+            </a-card>
+          </a-space>
+        </div>
 
         <a-empty v-else description="Project not found" />
       </a-card>
@@ -37,7 +70,7 @@
                 <a-button @click="fetchTasks">Refresh</a-button>
               </a-space>
 
-              <a-table :columns="taskColumns" :data-source="tasks" row-key="taskItemId" :loading="tasksLoading" :pagination="false">
+              <a-table :columns="taskColumns" :data-source="tasks" row-key="taskItemId" :loading="tasksLoading" :pagination="false" :scroll="{ x: 980 }">
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.key === 'dueDate'">
                     {{ formatDate(record.dueDate) }}
@@ -81,7 +114,7 @@
                 <a-button @click="fetchVariations">Refresh</a-button>
               </a-space>
 
-              <a-table :columns="variationColumns" :data-source="variations" row-key="variationId" :loading="variationsLoading" :pagination="false">
+              <a-table :columns="variationColumns" :data-source="variations" row-key="variationId" :loading="variationsLoading" :pagination="false" :scroll="{ x: 900 }">
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.key === 'amount'">
                     {{ formatCurrency(record.amount) }}
@@ -120,7 +153,7 @@
                 <a-button @click="fetchAttachments">Refresh</a-button>
               </a-space>
 
-              <a-table :columns="attachmentColumns" :data-source="attachments" row-key="attachmentId" :loading="attachmentsLoading" :pagination="false">
+              <a-table :columns="attachmentColumns" :data-source="attachments" row-key="attachmentId" :loading="attachmentsLoading" :pagination="false" :scroll="{ x: 900 }">
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.key === 'fileSize'">
                     {{ formatFileSize(record.fileSize) }}
@@ -155,11 +188,37 @@
 
     <a-modal v-model:open="projectModalOpen" title="Edit Project" :confirm-loading="projectSaving" @ok="submitProject">
       <a-form layout="vertical">
+        <a-form-item label="Project Code" required>
+          <a-input v-model:value="projectForm.code" />
+        </a-form-item>
         <a-form-item label="Project Name" required>
           <a-input v-model:value="projectForm.name" />
         </a-form-item>
         <a-form-item label="Address" required>
           <a-input v-model:value="projectForm.address" />
+        </a-form-item>
+        <a-form-item label="Client Name">
+          <a-input v-model:value="projectForm.clientName" />
+        </a-form-item>
+        <a-form-item label="Status" required>
+          <a-select v-model:value="projectForm.status">
+            <a-select-option value="Planning">Planning</a-select-option>
+            <a-select-option value="Active">Active</a-select-option>
+            <a-select-option value="OnHold">On Hold</a-select-option>
+            <a-select-option value="Completed">Completed</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="Budget">
+          <a-input-number v-model:value="projectForm.budget" style="width: 100%" :min="0" />
+        </a-form-item>
+        <a-form-item label="Start Date">
+          <a-input v-model:value="projectForm.startDate" type="date" />
+        </a-form-item>
+        <a-form-item label="End Date">
+          <a-input v-model:value="projectForm.endDate" type="date" />
+        </a-form-item>
+        <a-form-item label="Description">
+          <a-textarea v-model:value="projectForm.description" :rows="3" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -179,6 +238,14 @@
         </a-form-item>
         <a-form-item label="Due Date" required>
           <a-input v-model:value="taskForm.dueDate" type="datetime-local" />
+        </a-form-item>
+        <a-form-item label="Assign To">
+          <a-select
+            v-model:value="taskForm.assignedUserId"
+            allow-clear
+            placeholder="Select a contractor"
+            :options="assignableUserOptions"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -240,6 +307,7 @@ import type { Attachment, CreateAttachmentPayload, UpdateAttachmentPayload } fro
 import type { PagedResult } from '@/types/common'
 import type { ProjectDetail, UpdateProjectPayload } from '@/types/project'
 import type { CreateTaskPayload, TaskItem, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
+import type { UserSummary } from '@/types/user'
 import type { CreateVariationPayload, UpdateVariationPayload, UpdateVariationStatusPayload, Variation } from '@/types/variation'
 
 const route = useRoute()
@@ -253,6 +321,7 @@ const activeTab = ref('tasks')
 const tasks = ref<TaskItem[]>([])
 const taskTotal = ref(0)
 const tasksLoading = ref(false)
+const assignableUsers = ref<UserSummary[]>([])
 
 const variations = ref<Variation[]>([])
 const variationTotal = ref(0)
@@ -285,14 +354,22 @@ const uploadingAttachment = ref(false)
 const selectedFile = ref<File | null>(null)
 
 const projectForm = reactive<UpdateProjectPayload>({
+  code: '',
   name: '',
   address: '',
+  description: '',
+  clientName: '',
+  status: 'Planning',
+  budget: null,
+  startDate: '',
+  endDate: '',
 })
 
 const taskForm = reactive<CreateTaskPayload & UpdateTaskPayload>({
   title: '',
   description: '',
   dueDate: '',
+  assignedUserId: undefined,
 })
 
 const variationForm = reactive<CreateVariationPayload & UpdateVariationPayload>({
@@ -333,6 +410,7 @@ function getRequestedTab() {
 
 const taskColumns = [
   { title: 'Title', dataIndex: 'title', key: 'title' },
+  { title: 'Assigned To', dataIndex: 'assignedUserName', key: 'assignedUserName' },
   { title: 'Description', dataIndex: 'description', key: 'description' },
   { title: 'Due Date', dataIndex: 'dueDate', key: 'dueDate' },
   { title: 'Status', dataIndex: 'status', key: 'status', width: 140 },
@@ -355,6 +433,13 @@ const attachmentColumns = [
   { title: 'Uploaded', dataIndex: 'uploadedAt', key: 'uploadedAt' },
   { title: 'Actions', key: 'actions', width: 140 },
 ]
+
+const assignableUserOptions = computed(() =>
+  assignableUsers.value.map((user) => ({
+    label: `${user.name} (${user.email})`,
+    value: user.userId,
+  })),
+)
 
 async function fetchProject() {
   projectLoading.value = true
@@ -385,6 +470,23 @@ async function fetchTasks() {
     message.error('Failed to load tasks.')
   } finally {
     tasksLoading.value = false
+  }
+}
+
+async function fetchAssignableUsers() {
+  try {
+    const { data } = await api.get<PagedResult<UserSummary>>('/users', {
+      params: {
+        role: 'Contractor',
+        isActive: true,
+        pageNumber: 1,
+        pageSize: 100,
+      },
+    })
+
+    assignableUsers.value = data.items
+  } catch {
+    message.error('Failed to load contractors for task assignment.')
   }
 }
 
@@ -433,18 +535,32 @@ function openEditProjectModal() {
   if (!project.value) return
   projectForm.name = project.value.name
   projectForm.address = project.value.address
+  projectForm.code = project.value.code
+  projectForm.description = project.value.description ?? ''
+  projectForm.clientName = project.value.clientName ?? ''
+  projectForm.status = project.value.status
+  projectForm.budget = project.value.budget ?? null
+  projectForm.startDate = toDateInputValue(project.value.startDate)
+  projectForm.endDate = toDateInputValue(project.value.endDate)
   projectModalOpen.value = true
 }
 
 async function submitProject() {
-  if (!projectForm.name.trim() || !projectForm.address.trim()) {
-    message.warning('Project name and address are required.')
+  if (!projectForm.code.trim() || !projectForm.name.trim() || !projectForm.address.trim()) {
+    message.warning('Project code, name, and address are required.')
     return
   }
 
   projectSaving.value = true
   try {
-    await api.put(`/projects/${projectId.value}`, projectForm)
+    await api.put(`/projects/${projectId.value}`, {
+      ...projectForm,
+      description: projectForm.description || null,
+      clientName: projectForm.clientName || null,
+      budget: projectForm.budget ?? null,
+      startDate: projectForm.startDate ? new Date(projectForm.startDate).toISOString() : null,
+      endDate: projectForm.endDate ? new Date(projectForm.endDate).toISOString() : null,
+    })
     message.success('Project updated.')
     projectModalOpen.value = false
     await fetchProject()
@@ -471,6 +587,7 @@ function openCreateTaskModal() {
   taskForm.title = ''
   taskForm.description = ''
   taskForm.dueDate = ''
+  taskForm.assignedUserId = undefined
   taskModalOpen.value = true
 }
 
@@ -480,6 +597,7 @@ function openEditTaskModal(task: TaskItem) {
   taskForm.title = task.title
   taskForm.description = task.description ?? ''
   taskForm.dueDate = toLocalInputValue(task.dueDate)
+  taskForm.assignedUserId = task.assignedUserId ?? undefined
   taskModalOpen.value = true
 }
 
@@ -495,6 +613,7 @@ async function submitTask() {
       title: taskForm.title,
       description: taskForm.description || null,
       dueDate: new Date(taskForm.dueDate).toISOString(),
+      assignedUserId: taskForm.assignedUserId || null,
     }
 
     if (taskModalMode.value === 'create') {
@@ -695,8 +814,21 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString()
 }
 
+function formatOptionalDate(value?: string | null) {
+  return value ? new Date(value).toLocaleDateString() : 'Not set'
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value)
+}
+
+function projectStatusColor(status: string) {
+  return ({
+    Planning: 'default',
+    Active: 'processing',
+    OnHold: 'warning',
+    Completed: 'success',
+  } as Record<string, string>)[status] ?? 'default'
 }
 
 function formatFileSize(value: number) {
@@ -711,6 +843,10 @@ function toLocalInputValue(value: string) {
   const offset = date.getTimezoneOffset()
   const localDate = new Date(date.getTime() - offset * 60_000)
   return localDate.toISOString().slice(0, 16)
+}
+
+function toDateInputValue(value?: string | null) {
+  return value ? new Date(value).toISOString().slice(0, 10) : ''
 }
 
 watch(
@@ -744,5 +880,38 @@ watch(
 onMounted(() => {
   activeTab.value = getRequestedTab()
   fetchAll()
+  fetchAssignableUsers()
 })
 </script>
+
+<style scoped>
+.detail-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.project-mobile {
+  display: none;
+}
+
+.mobile-project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.muted {
+  color: #64748b;
+}
+
+@media (max-width: 768px) {
+  .project-desktop {
+    display: none;
+  }
+
+  .project-mobile {
+    display: block;
+  }
+}
+</style>

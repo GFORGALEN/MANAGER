@@ -23,4 +23,45 @@ namespace ConstructionManagement.DTOs.Auth
 
         public DateTime ExpiresAtUtc { get; set; }
     }
+
+    public class RegisterRequestDto
+    {
+        [Required]
+        [MinLength(1)]
+        public required string Name { get; set; }
+
+        [Required]
+        [EmailAddress]
+        public required string Email { get; set; }
+
+        public string? PhoneNumber { get; set; }
+
+        [Required]
+        [MinLength(6)]
+        public required string Password { get; set; }
+
+        [Required]
+        [Compare(nameof(Password))]
+        public required string ConfirmPassword { get; set; }
+    }
+
+    public class RegisterResponseDto
+    {
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class CurrentUserDto
+    {
+        public Guid Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+
+        public string? PhoneNumber { get; set; }
+
+        public string Role { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; }
+    }
 }

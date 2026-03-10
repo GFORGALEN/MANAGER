@@ -59,4 +59,19 @@ namespace ConstructionManagement.DTOs.Common
 
         public string? SortOrder { get; set; }
     }
+
+    public class UserQueryDto
+    {
+        [Range(1, int.MaxValue)]
+        public int PageNumber { get; set; } = 1;
+
+        [Range(1, 100)]
+        public int PageSize { get; set; } = 10;
+
+        public string? Keyword { get; set; }
+
+        public string? Role { get; set; }
+
+        public bool? IsActive { get; set; }
+    }
 }

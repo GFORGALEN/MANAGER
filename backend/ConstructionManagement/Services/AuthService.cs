@@ -1,9 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.ComponentModel.DataAnnotations;
 using ConstructionManagement.Configurations;
 using ConstructionManagement.Data;
 using ConstructionManagement.DTOs.Auth;
+using ConstructionManagement.Entities;
 using ConstructionManagement.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -26,21 +28,76 @@ namespace ConstructionManagement.Services
 
         public async Task<AuthResponseDto?> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
         {
-            var username = request.Username.Trim();
-            var user = await _context.Users.FirstOrDefaultAsync(item => item.Username == username, cancellationToken);
+            var usernameOrEmail = request.Username.Trim();
+            var user = await _context.Users.FirstOrDefaultAsync(
+                item => item.Username == usernameOrEmail || item.Email == usernameOrEmail,
+                cancellationToken);
 
-            if (user is null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
+            if (user is null || !user.IsActive || !_passwordHasher.Verify(request.Password, user.PasswordHash))
             {
                 return null;
             }
 
+            return BuildAuthResponse(user);
+        }
+
+        public async Task<RegisterResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
+        {
+            var email = request.Email.Trim();
+            if (await _context.Users.AnyAsync(user => user.Email == email, cancellationToken))
+            {
+                throw new ValidationException("Email address is already registered.");
+            }
+
+            var user = new User
+            {
+                UserId = Guid.NewGuid(),
+                Name = request.Name.Trim(),
+                Username = email,
+                Email = email,
+                PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim(),
+                PasswordHash = _passwordHasher.Hash(request.Password),
+                Role = "Contractor",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return new RegisterResponseDto
+            {
+                Message = "Registration completed successfully."
+            };
+        }
+
+        public async Task<CurrentUserDto?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Users
+                .Where(user => user.UserId == userId)
+                .Select(user => new CurrentUserDto
+                {
+                    Id = user.UserId,
+                    Name = user.Name,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber,
+                    Role = user.Role,
+                    IsActive = user.IsActive
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private AuthResponseDto BuildAuthResponse(User user)
+        {
             var now = DateTime.UtcNow;
             var expires = now.AddMinutes(_jwtOptions.ExpirationMinutes);
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role)
             };
 

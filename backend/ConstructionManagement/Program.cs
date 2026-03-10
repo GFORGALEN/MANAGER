@@ -75,6 +75,7 @@ builder.Services.AddScoped<ITaskItemService, TaskItemService>();
 builder.Services.AddScoped<IVariationService, VariationService>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();

@@ -2,6 +2,8 @@ using ConstructionManagement.DTOs.Auth;
 using ConstructionManagement.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace ConstructionManagement.Controllers
 {
@@ -9,7 +11,6 @@ namespace ConstructionManagement.Controllers
     /// Provides authentication endpoints for API users.
     /// </summary>
     [ApiController]
-    [AllowAnonymous]
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
@@ -25,6 +26,7 @@ namespace ConstructionManagement.Controllers
         /// </summary>
         /// <param name="request">Login credentials.</param>
         /// <returns>A JWT token and user summary.</returns>
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
         {
@@ -40,6 +42,48 @@ namespace ConstructionManagement.Controllers
             }
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Registers a new contractor account.
+        /// </summary>
+        /// <param name="request">Registration details for the new contractor.</param>
+        /// <returns>A success response when registration is completed.</returns>
+        [AllowAnonymous]
+        [HttpPost("register")]
+        public async Task<ActionResult<RegisterResponseDto>> Register([FromBody] RegisterRequestDto request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            return Ok(await _authService.RegisterAsync(request, cancellationToken));
+        }
+
+        /// <summary>
+        /// Gets the currently authenticated user profile.
+        /// </summary>
+        /// <returns>The current authenticated user profile.</returns>
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<ActionResult<CurrentUserDto>> Me(CancellationToken cancellationToken)
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (!Guid.TryParse(userIdValue, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var currentUser = await _authService.GetCurrentUserAsync(userId, cancellationToken);
+            if (currentUser is null)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(currentUser);
         }
     }
 }

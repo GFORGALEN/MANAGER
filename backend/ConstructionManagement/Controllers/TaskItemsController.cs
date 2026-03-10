@@ -24,7 +24,7 @@ namespace ConstructionManagement.Controllers
         /// </summary>
         /// <param name="projectId">The project ID.</param>
         /// <returns>All tasks under the specified project.</returns>
-        [Authorize(Roles = "Admin,PM,Contractor")]
+        [Authorize(Roles = "Admin,PM")]
         [HttpGet("api/projects/{projectId:guid}/tasks")]
         public async Task<ActionResult<PagedResultDto<TaskItemListDto>>> GetProjectTasks(Guid projectId, [FromQuery] TaskItemQueryDto query, CancellationToken cancellationToken)
         {
@@ -42,7 +42,7 @@ namespace ConstructionManagement.Controllers
         /// </summary>
         /// <param name="id">The task ID.</param>
         /// <returns>The matching task if found.</returns>
-        [Authorize(Roles = "Admin,PM,Contractor")]
+        [Authorize(Roles = "Admin,PM")]
         [HttpGet("api/tasks/{id:guid}")]
         public async Task<ActionResult<TaskItemDetailDto>> GetTask(Guid id, CancellationToken cancellationToken)
         {
@@ -109,7 +109,7 @@ namespace ConstructionManagement.Controllers
         /// <param name="id">The task ID.</param>
         /// <param name="request">The new status value. Allowed values: Todo, Doing, Done.</param>
         /// <returns>The updated task.</returns>
-        [Authorize(Roles = "Admin,PM,Contractor")]
+        [Authorize(Roles = "Admin,PM")]
         [HttpPatch("api/tasks/{id:guid}/status")]
         public async Task<ActionResult<TaskItemDetailDto>> UpdateTaskStatus(Guid id, [FromBody] UpdateTaskStatusDto request, CancellationToken cancellationToken)
         {

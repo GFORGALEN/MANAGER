@@ -14,8 +14,12 @@ namespace ConstructionManagement.Entities
 
         public DateTime DueDate { get; set; }
 
+        public Guid? AssignedUserId { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public Project Project { get; set; } = null!;
+
+        public User? AssignedUser { get; set; }
     }
 }
