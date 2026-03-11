@@ -16,6 +16,11 @@
           <span>{{ t('brandSubtitle') }}</span>
         </div>
       </div>
+      <div v-if="!collapsed" class="sider-context">
+        <div class="context-label">{{ roleLabel(currentUser?.role) || 'Workspace' }}</div>
+        <strong>{{ pageTitle }}</strong>
+        <span>{{ t('headerSubtitle') }}</span>
+      </div>
 
       <a-menu
         mode="inline"
@@ -201,7 +206,7 @@ function logout() {
 
 .app-sider {
   border-inline-end: 1px solid rgba(226, 232, 240, 0.8);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.94)) !important;
+  background: linear-gradient(180deg, rgba(247, 242, 235, 0.98), rgba(236, 229, 218, 0.96)) !important;
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.55);
 }
 
@@ -233,6 +238,38 @@ function logout() {
   font-size: 12px;
 }
 
+.sider-context {
+  margin: 2px 16px 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.92));
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+}
+
+.sider-context strong {
+  display: block;
+  margin: 6px 0;
+  font-size: 15px;
+}
+
+.sider-context span {
+  display: block;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.context-label {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 :deep(.ant-menu) {
   background: transparent;
   border-inline-end: 0 !important;
@@ -249,13 +286,13 @@ function logout() {
 }
 
 :deep(.ant-menu-light .ant-menu-item-selected) {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(14, 165, 233, 0.1));
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.16), rgba(120, 113, 108, 0.12));
 }
 
 :deep(.ant-layout-sider-trigger) {
-  background: rgba(248, 250, 252, 0.96);
-  color: #334155;
-  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(239, 231, 218, 0.96);
+  color: #4b3f31;
+  border-top: 1px solid rgba(191, 168, 138, 0.48);
 }
 
 .app-header {
@@ -265,7 +302,7 @@ function logout() {
   gap: 16px;
   height: auto;
   padding: 20px 24px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(247, 242, 235, 0.8);
   backdrop-filter: blur(14px);
   border-bottom: 2px solid var(--role-border, #e5e7eb);
   box-shadow: inset 0 4px 0 0 var(--role-soft, transparent);
@@ -297,6 +334,7 @@ function logout() {
 .profile-button {
   min-width: 112px;
   justify-content: space-between;
+  border-radius: 999px;
 }
 
 .content-area {
@@ -304,24 +342,24 @@ function logout() {
 }
 
 .role-theme-admin {
-  --role-color-start: #b91c1c;
-  --role-color-end: #f97316;
-  --role-border: #fdba74;
-  --role-soft: rgba(249, 115, 22, 0.15);
+  --role-color-start: #9a3412;
+  --role-color-end: #b91c1c;
+  --role-border: #f59e0b;
+  --role-soft: rgba(180, 83, 9, 0.16);
 }
 
 .role-theme-pm {
-  --role-color-start: #0f766e;
-  --role-color-end: #2563eb;
-  --role-border: #93c5fd;
-  --role-soft: rgba(37, 99, 235, 0.12);
+  --role-color-start: #1f2937;
+  --role-color-end: #0f766e;
+  --role-border: #14b8a6;
+  --role-soft: rgba(15, 118, 110, 0.12);
 }
 
 .role-theme-contractor {
-  --role-color-start: #15803d;
-  --role-color-end: #65a30d;
-  --role-border: #86efac;
-  --role-soft: rgba(101, 163, 13, 0.14);
+  --role-color-start: #365314;
+  --role-color-end: #4d7c0f;
+  --role-border: #84cc16;
+  --role-soft: rgba(77, 124, 15, 0.14);
 }
 
 @media (max-width: 768px) {

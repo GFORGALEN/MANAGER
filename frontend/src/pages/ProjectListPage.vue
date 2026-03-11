@@ -15,6 +15,25 @@
         </a-space>
       </template>
 
+      <div class="project-overview">
+        <div class="overview-tile">
+          <span>Total</span>
+          <strong>{{ totalCount }}</strong>
+        </div>
+        <div class="overview-tile">
+          <span>Active</span>
+          <strong>{{ projects.filter((project) => project.status === 'Active').length }}</strong>
+        </div>
+        <div class="overview-tile">
+          <span>Planning</span>
+          <strong>{{ projects.filter((project) => project.status === 'Planning').length }}</strong>
+        </div>
+        <div class="overview-tile">
+          <span>Completed</span>
+          <strong>{{ projects.filter((project) => project.status === 'Completed').length }}</strong>
+        </div>
+      </div>
+
       <a-table
         class="desktop-table"
         :columns="columns"
@@ -322,6 +341,35 @@ onMounted(fetchProjects)
   width: 260px;
 }
 
+.project-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.overview-tile {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.95));
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.overview-tile span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.overview-tile strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 30px;
+  line-height: 1;
+}
+
 .desktop-table {
   display: block;
 }
@@ -363,6 +411,10 @@ onMounted(fetchProjects)
 }
 
 @media (max-width: 768px) {
+  .project-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .toolbar-search {
     width: 100%;
   }

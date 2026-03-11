@@ -5,6 +5,7 @@ using ConstructionManagement.DTOs.Tasks;
 using ConstructionManagement.Entities;
 using ConstructionManagement.Helpers;
 using System.ComponentModel.DataAnnotations;
+using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 
 namespace ConstructionManagement.Services
@@ -14,12 +15,14 @@ namespace ConstructionManagement.Services
         private readonly AppDbContext _context;
         private readonly ILogger<TaskItemService> _logger;
         private readonly ISmsService _smsService;
+        private readonly IEmailService _emailService;
 
-        public TaskItemService(AppDbContext context, ILogger<TaskItemService> logger, ISmsService smsService)
+        public TaskItemService(AppDbContext context, ILogger<TaskItemService> logger, ISmsService smsService, IEmailService emailService)
         {
             _context = context;
             _logger = logger;
             _smsService = smsService;
+            _emailService = emailService;
         }
 
         public async Task<PagedResultDto<TaskItemListDto>?> GetProjectTasksAsync(Guid projectId, TaskItemQueryDto query, CancellationToken cancellationToken = default)
@@ -323,6 +326,75 @@ namespace ConstructionManagement.Services
             return result;
         }
 
+        public async Task<TaskEmailResultDto?> SendTaskEmailAsync(Guid taskId, string? customMessage, CancellationToken cancellationToken = default)
+        {
+            var task = await _context.TaskItems
+                .Include(item => item.Project)
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
+                .FirstOrDefaultAsync(item => item.TaskItemId == taskId, cancellationToken);
+
+            if (task is null)
+            {
+                _logger.LogWarning("Task {TaskId} was not found for email notification", taskId);
+                return null;
+            }
+
+            var recipients = task.TaskAssignments
+                .Select(taskAssignment => taskAssignment.User)
+                .Where(user => user.IsActive)
+                .GroupBy(user => user.UserId)
+                .Select(group => group.First())
+                .ToList();
+
+            if (recipients.Count == 0)
+            {
+                throw new ValidationException("This task has no active assigned users to notify.");
+            }
+
+            var subject = $"Task Update: {task.Title}";
+            var emailBody = BuildTaskEmailMessage(task, customMessage);
+            var result = new TaskEmailResultDto
+            {
+                TaskItemId = task.TaskItemId,
+                TaskTitle = task.Title
+            };
+
+            foreach (var user in recipients)
+            {
+                if (string.IsNullOrWhiteSpace(user.Email))
+                {
+                    result.SkippedRecipients.Add($"{user.Name} (missing email address)");
+                    continue;
+                }
+
+                result.AttemptedCount++;
+
+                try
+                {
+                    await _emailService.SendAsync(user.Email.Trim(), subject, emailBody, cancellationToken);
+                    result.SentCount++;
+                    result.SentRecipients.Add($"{user.Name} <{user.Email.Trim()}>");
+                }
+                catch (ValidationException ex)
+                {
+                    result.FailedRecipients.Add($"{user.Name} ({ex.Message})");
+                }
+                catch (SmtpException ex)
+                {
+                    result.FailedRecipients.Add($"{user.Name} ({ex.Message})");
+                }
+            }
+
+            _logger.LogInformation(
+                "Task email notification completed for task {TaskId}. Attempted: {AttemptedCount}, Sent: {SentCount}",
+                taskId,
+                result.AttemptedCount,
+                result.SentCount);
+
+            return result;
+        }
+
         private async Task<Guid?> ValidateAssignedUserAsync(Guid? assignedUserId, CancellationToken cancellationToken)
         {
             if (assignedUserId is null)
@@ -426,6 +498,23 @@ namespace ConstructionManagement.Services
             return normalized.Length >= 8 &&
                 normalized.StartsWith('+') &&
                 normalized.Skip(1).All(char.IsDigit);
+        }
+
+        private static string BuildTaskEmailMessage(TaskItem task, string? customMessage)
+        {
+            if (!string.IsNullOrWhiteSpace(customMessage))
+            {
+                return customMessage.Trim();
+            }
+
+            var projectName = task.Project?.Name ?? "Project";
+            return
+                $"Task update{Environment.NewLine}" +
+                $"Project: {projectName}{Environment.NewLine}" +
+                $"Task: {task.Title}{Environment.NewLine}" +
+                $"Status: {task.Status}{Environment.NewLine}" +
+                $"Start: {task.StartDate:yyyy-MM-dd HH:mm}{Environment.NewLine}" +
+                $"Due: {task.DueDate:yyyy-MM-dd HH:mm}";
         }
     }
 }

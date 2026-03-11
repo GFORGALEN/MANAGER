@@ -151,5 +151,29 @@ namespace ConstructionManagement.Controllers
 
             return Ok(result);
         }
+
+        /// <summary>
+        /// Sends an email update to all active users assigned to a task.
+        /// </summary>
+        /// <param name="id">The task ID.</param>
+        /// <param name="request">Optional custom email body. If omitted, the backend sends a default task summary.</param>
+        /// <returns>A delivery summary including sent and skipped recipients.</returns>
+        [Authorize(Roles = "Admin,PM")]
+        [HttpPost("api/tasks/{id:guid}/notify-email")]
+        public async Task<ActionResult<TaskEmailResultDto>> SendTaskEmail(Guid id, [FromBody] SendTaskEmailDto request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var result = await _taskItemService.SendTaskEmailAsync(id, request.Message, cancellationToken);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
+        }
     }
 }

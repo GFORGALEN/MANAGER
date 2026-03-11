@@ -1,20 +1,21 @@
 :root {
   color: #0f172a;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 24%),
-    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 22%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4f8 52%, #e9f0f5 100%);
+    radial-gradient(circle at 12% 10%, rgba(180, 83, 9, 0.09), transparent 18%),
+    radial-gradient(circle at 86% 14%, rgba(20, 83, 45, 0.08), transparent 16%),
+    linear-gradient(180deg, #ece5da 0%, #e2d9cb 48%, #d6cbbb 100%);
   font-family:
     "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  --shell-border: rgba(148, 163, 184, 0.22);
-  --shell-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
-  --card-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
-  --card-shadow-hover: 0 24px 64px rgba(15, 23, 42, 0.12);
-  --surface: rgba(255, 255, 255, 0.82);
-  --surface-strong: rgba(255, 255, 255, 0.94);
-  --text-soft: #64748b;
+  --shell-border: rgba(109, 76, 45, 0.16);
+  --shell-shadow: 0 24px 70px rgba(51, 38, 24, 0.08);
+  --card-shadow: 0 18px 50px rgba(51, 38, 24, 0.1);
+  --card-shadow-hover: 0 24px 64px rgba(51, 38, 24, 0.14);
+  --surface: rgba(245, 240, 232, 0.84);
+  --surface-strong: rgba(249, 244, 237, 0.94);
+  --text-soft: #6b5d4a;
+  --ring-soft: 0 0 0 4px rgba(180, 83, 9, 0.12);
 }
 
 * {
@@ -50,12 +51,19 @@ body {
 
 .page-card:hover {
   box-shadow: var(--card-shadow-hover);
-  border-color: rgba(96, 165, 250, 0.26);
+  border-color: rgba(180, 83, 9, 0.24);
+}
+
+.ant-card,
+.ant-modal-content,
+.ant-dropdown-menu,
+.ant-select-dropdown {
+  backdrop-filter: blur(16px);
 }
 
 .ant-card .ant-card-head {
   min-height: auto;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  border-bottom: 1px solid rgba(191, 168, 138, 0.55);
 }
 
 .ant-card .ant-card-head-wrapper {
@@ -78,13 +86,18 @@ body {
 }
 
 .ant-btn-primary {
-  background: linear-gradient(135deg, #1677ff, #155eef);
+  background: linear-gradient(135deg, #b45309, #92400e);
   border-color: transparent;
 }
 
 .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: linear-gradient(135deg, #c2410c, #9a3412) !important;
   border-color: transparent !important;
+}
+
+.ant-btn:not(.ant-btn-primary):hover {
+  border-color: rgba(180, 83, 9, 0.36);
+  color: #92400e;
 }
 
 .ant-input,
@@ -96,14 +109,21 @@ body {
   border-radius: 12px !important;
 }
 
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  box-shadow: var(--ring-soft) !important;
+}
+
 .ant-table-wrapper .ant-table {
   border-radius: 16px;
   overflow: hidden;
 }
 
 .ant-table-wrapper .ant-table-thead > tr > th {
-  background: #f8fafc;
-  color: #334155;
+  background: #efe7da;
+  color: #4b3f31;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -115,7 +135,7 @@ body {
 }
 
 .ant-table-wrapper .ant-table-tbody > tr:hover > td {
-  background: #f8fbff !important;
+  background: #f4ede2 !important;
 }
 
 .ant-tabs .ant-tabs-tab {

@@ -61,6 +61,16 @@ export interface TaskSmsResult {
   failedRecipients: string[]
 }
 
+export interface TaskEmailResult {
+  taskItemId: string
+  taskTitle: string
+  attemptedCount: number
+  sentCount: number
+  sentRecipients: string[]
+  skippedRecipients: string[]
+  failedRecipients: string[]
+}
+
 export interface TaskDetail extends TaskItem {
   projectAddress: string
   attachments: TaskAttachment[]

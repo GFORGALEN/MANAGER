@@ -110,7 +110,7 @@
                   <template v-else-if="column.key === 'actions'">
                     <a-space wrap>
                       <a-button size="small" @click="openEditTaskModal(record)">Edit</a-button>
-                      <a-button size="small" @click="openTaskSmsModal(record)">SMS Team</a-button>
+                      <a-button size="small" @click="openTaskEmailModal(record)">Email Team</a-button>
                     </a-space>
                   </template>
                 </template>
@@ -284,25 +284,33 @@
     </a-modal>
 
     <a-modal
-      v-model:open="taskSmsModalOpen"
-      title="Send SMS to Task Team"
-      :confirm-loading="taskSmsSending"
-      ok-text="Send SMS"
-      @ok="submitTaskSms"
+      v-model:open="taskEmailModalOpen"
+      title="Send Email to Task Team"
+      :confirm-loading="taskEmailSending"
+      ok-text="Send Email"
+      @ok="submitTaskEmail"
     >
       <a-space direction="vertical" style="width: 100%">
         <a-alert
-          v-if="selectedSmsTask"
-          :message="`This will notify ${selectedSmsTask.assignedUsers.length || 0} assigned team members for ${selectedSmsTask.title}.`"
+          v-if="selectedEmailTask"
+          :message="`This will email ${selectedEmailTask.assignedUsers.length || 0} assigned team members for ${selectedEmailTask.title}.`"
           type="info"
           show-icon
         />
+        <a-card v-if="selectedEmailTask" size="small">
+          <template #title>Recipients</template>
+          <a-space wrap>
+            <a-tag v-for="user in selectedEmailTask.assignedUsers" :key="user.userId">
+              {{ user.name }} - {{ user.email }}
+            </a-tag>
+          </a-space>
+        </a-card>
         <a-form layout="vertical">
           <a-form-item label="Custom Message">
             <a-textarea
-              v-model:value="taskSmsForm.message"
+              v-model:value="taskEmailForm.message"
               :rows="5"
-              placeholder="Optional. Leave blank to use the default task summary."
+              placeholder="Optional. Leave blank to use the default task summary email."
             />
           </a-form-item>
         </a-form>
@@ -366,7 +374,7 @@ import { useI18n } from '@/services/i18n'
 import type { Attachment, CreateAttachmentPayload, UpdateAttachmentPayload } from '@/types/attachment'
 import type { PagedResult } from '@/types/common'
 import type { ProjectDetail, UpdateProjectPayload } from '@/types/project'
-import type { CreateTaskPayload, TaskItem, TaskSmsResult, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
+import type { CreateTaskPayload, TaskEmailResult, TaskItem, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
 import type { UserSummary } from '@/types/user'
 import type { CreateVariationPayload, UpdateVariationPayload, UpdateVariationStatusPayload, Variation } from '@/types/variation'
 
@@ -399,9 +407,9 @@ const taskModalOpen = ref(false)
 const taskModalMode = ref<'create' | 'edit'>('create')
 const taskSaving = ref(false)
 const selectedTaskId = ref<string | null>(null)
-const taskSmsModalOpen = ref(false)
-const taskSmsSending = ref(false)
-const selectedSmsTask = ref<TaskItem | null>(null)
+const taskEmailModalOpen = ref(false)
+const taskEmailSending = ref(false)
+const selectedEmailTask = ref<TaskItem | null>(null)
 
 const variationModalOpen = ref(false)
 const variationModalMode = ref<'create' | 'edit'>('create')
@@ -438,7 +446,7 @@ const taskForm = reactive<CreateTaskPayload & UpdateTaskPayload>({
   assignedUserIds: [],
 })
 
-const taskSmsForm = reactive({
+const taskEmailForm = reactive({
   message: '',
 })
 
@@ -681,10 +689,10 @@ function openEditTaskModal(task: TaskItem) {
   taskModalOpen.value = true
 }
 
-function openTaskSmsModal(task: TaskItem) {
-  selectedSmsTask.value = task
-  taskSmsForm.message = ''
-  taskSmsModalOpen.value = true
+function openTaskEmailModal(task: TaskItem) {
+  selectedEmailTask.value = task
+  taskEmailForm.message = ''
+  taskEmailModalOpen.value = true
 }
 
 async function submitTask() {
@@ -731,18 +739,21 @@ async function updateTaskStatus(taskId: string, status: UpdateTaskStatusPayload[
   }
 }
 
-async function submitTaskSms() {
-  if (!selectedSmsTask.value) {
+async function submitTaskEmail() {
+  if (!selectedEmailTask.value) {
     return
   }
 
-  taskSmsSending.value = true
+  taskEmailSending.value = true
   try {
-    const { data } = await api.post<TaskSmsResult>(`/tasks/${selectedSmsTask.value.taskItemId}/notify-sms`, {
-      message: taskSmsForm.message || null,
+    const { data } = await api.post<TaskEmailResult>(`/tasks/${selectedEmailTask.value.taskItemId}/notify-email`, {
+      message: taskEmailForm.message || null,
     })
 
-    const summaryParts = [`Sent ${data.sentCount} of ${data.attemptedCount} attempted messages.`]
+    const summaryParts = [`Sent ${data.sentCount} of ${data.attemptedCount} attempted emails.`]
+    if (data.sentRecipients.length > 0) {
+      summaryParts.push(`Delivered to: ${data.sentRecipients.join(', ')}`)
+    }
     if (data.skippedRecipients.length > 0) {
       summaryParts.push(`Skipped: ${data.skippedRecipients.join(', ')}`)
     }
@@ -751,11 +762,11 @@ async function submitTaskSms() {
     }
 
     message.success(summaryParts.join(' '))
-    taskSmsModalOpen.value = false
+    taskEmailModalOpen.value = false
   } catch (error) {
-    message.error(extractApiError(error, 'Failed to send SMS notifications.'))
+    message.error(extractApiError(error, 'Failed to send email notifications.'))
   } finally {
-    taskSmsSending.value = false
+    taskEmailSending.value = false
   }
 }
 
