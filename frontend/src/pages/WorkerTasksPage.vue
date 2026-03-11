@@ -24,6 +24,10 @@
               </div>
               <span class="muted">{{ task.projectName }}</span>
               <span v-if="task.description">{{ task.description }}</span>
+              <span v-if="task.assignedUsers?.length" class="muted">
+                Team:
+                {{ task.assignedUsers.map((user) => user.name).join(', ') }}
+              </span>
               <span class="muted">Due: {{ formatDate(task.dueDate) }}</span>
               <a-button type="primary" block @click="router.push({ name: 'worker-task-detail', params: { id: task.taskItemId } })">
                 Open Task

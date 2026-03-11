@@ -19,7 +19,7 @@
           <a-descriptions-item label="Address">{{ project.address }}</a-descriptions-item>
           <a-descriptions-item label="Client">{{ project.clientName || 'Not set' }}</a-descriptions-item>
           <a-descriptions-item label="Status">
-            <a-tag :color="projectStatusColor(project.status)">{{ project.status }}</a-tag>
+            <a-tag :color="projectStatusColor(project.status)">{{ projectStatusLabel(project.status) }}</a-tag>
           </a-descriptions-item>
           <a-descriptions-item label="Budget">{{ formatCurrency(project.budget ?? 0) }}</a-descriptions-item>
           <a-descriptions-item label="Start Date">{{ formatOptionalDate(project.startDate) }}</a-descriptions-item>
@@ -36,7 +36,7 @@
                   <strong>{{ project.name }}</strong>
                   <div class="muted">#{{ project.code }}</div>
                 </div>
-                <a-tag :color="projectStatusColor(project.status)">{{ project.status }}</a-tag>
+                <a-tag :color="projectStatusColor(project.status)">{{ projectStatusLabel(project.status) }}</a-tag>
               </div>
             </a-card>
             <a-card size="small">
@@ -70,9 +70,29 @@
                 <a-button @click="fetchTasks">Refresh</a-button>
               </a-space>
 
+              <a-alert :message="t('userPoolNote')" type="info" show-icon />
+
+              <div class="task-board">
+                <div v-for="column in taskBoardColumns" :key="column.status" class="task-board-column">
+                  <div class="task-board-title">{{ column.label }} ({{ column.items.length }})</div>
+                  <a-space direction="vertical" style="width: 100%">
+                    <a-card v-for="task in column.items" :key="task.taskItemId" size="small">
+                      <a-space direction="vertical" style="width: 100%">
+                        <strong>{{ task.title }}</strong>
+                        <span class="muted">{{ task.assignedUserName || '-' }}</span>
+                        <span class="muted">{{ formatDate(task.dueDate) }}</span>
+                      </a-space>
+                    </a-card>
+                  </a-space>
+                </div>
+              </div>
+
               <a-table :columns="taskColumns" :data-source="tasks" row-key="taskItemId" :loading="tasksLoading" :pagination="false" :scroll="{ x: 980 }">
                 <template #bodyCell="{ column, record }">
-                  <template v-if="column.key === 'dueDate'">
+                  <template v-if="column.key === 'startDate'">
+                    {{ formatDate(record.startDate ?? record.createdAt) }}
+                  </template>
+                  <template v-else-if="column.key === 'dueDate'">
                     {{ formatDate(record.dueDate) }}
                   </template>
                   <template v-else-if="column.key === 'status'">
@@ -82,8 +102,16 @@
                       <a-select-option value="Done">Done</a-select-option>
                     </a-select>
                   </template>
+                  <template v-else-if="column.key === 'assignedUsers'">
+                    <a-space wrap>
+                      <a-tag v-for="user in record.assignedUsers" :key="user.userId">{{ user.name }}</a-tag>
+                    </a-space>
+                  </template>
                   <template v-else-if="column.key === 'actions'">
-                    <a-button size="small" @click="openEditTaskModal(record)">Edit</a-button>
+                    <a-space wrap>
+                      <a-button size="small" @click="openEditTaskModal(record)">Edit</a-button>
+                      <a-button size="small" @click="openTaskSmsModal(record)">SMS Team</a-button>
+                    </a-space>
                   </template>
                 </template>
               </a-table>
@@ -236,18 +264,49 @@
         <a-form-item label="Description">
           <a-textarea v-model:value="taskForm.description" :rows="3" />
         </a-form-item>
+        <a-form-item label="Start Date" required>
+          <a-input v-model:value="taskForm.startDate" type="datetime-local" />
+        </a-form-item>
         <a-form-item label="Due Date" required>
           <a-input v-model:value="taskForm.dueDate" type="datetime-local" />
         </a-form-item>
-        <a-form-item label="Assign To">
+        <a-form-item :label="t('assignTo')">
           <a-select
-            v-model:value="taskForm.assignedUserId"
+            v-model:value="taskForm.assignedUserIds"
+            mode="multiple"
             allow-clear
-            placeholder="Select a contractor"
+            show-search
+            :placeholder="t('assignAllUsers')"
             :options="assignableUserOptions"
           />
         </a-form-item>
       </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="taskSmsModalOpen"
+      title="Send SMS to Task Team"
+      :confirm-loading="taskSmsSending"
+      ok-text="Send SMS"
+      @ok="submitTaskSms"
+    >
+      <a-space direction="vertical" style="width: 100%">
+        <a-alert
+          v-if="selectedSmsTask"
+          :message="`This will notify ${selectedSmsTask.assignedUsers.length || 0} assigned team members for ${selectedSmsTask.title}.`"
+          type="info"
+          show-icon
+        />
+        <a-form layout="vertical">
+          <a-form-item label="Custom Message">
+            <a-textarea
+              v-model:value="taskSmsForm.message"
+              :rows="5"
+              placeholder="Optional. Leave blank to use the default task summary."
+            />
+          </a-form-item>
+        </a-form>
+      </a-space>
     </a-modal>
 
     <a-modal
@@ -303,15 +362,17 @@ import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import api from '@/services/api'
+import { useI18n } from '@/services/i18n'
 import type { Attachment, CreateAttachmentPayload, UpdateAttachmentPayload } from '@/types/attachment'
 import type { PagedResult } from '@/types/common'
 import type { ProjectDetail, UpdateProjectPayload } from '@/types/project'
-import type { CreateTaskPayload, TaskItem, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
+import type { CreateTaskPayload, TaskItem, TaskSmsResult, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
 import type { UserSummary } from '@/types/user'
 import type { CreateVariationPayload, UpdateVariationPayload, UpdateVariationStatusPayload, Variation } from '@/types/variation'
 
 const route = useRoute()
 const router = useRouter()
+const { t, projectStatusLabel } = useI18n()
 const supportedTabs = ['tasks', 'variations', 'attachments'] as const
 
 const project = ref<ProjectDetail | null>(null)
@@ -338,6 +399,9 @@ const taskModalOpen = ref(false)
 const taskModalMode = ref<'create' | 'edit'>('create')
 const taskSaving = ref(false)
 const selectedTaskId = ref<string | null>(null)
+const taskSmsModalOpen = ref(false)
+const taskSmsSending = ref(false)
+const selectedSmsTask = ref<TaskItem | null>(null)
 
 const variationModalOpen = ref(false)
 const variationModalMode = ref<'create' | 'edit'>('create')
@@ -368,8 +432,14 @@ const projectForm = reactive<UpdateProjectPayload>({
 const taskForm = reactive<CreateTaskPayload & UpdateTaskPayload>({
   title: '',
   description: '',
+  startDate: '',
   dueDate: '',
   assignedUserId: undefined,
+  assignedUserIds: [],
+})
+
+const taskSmsForm = reactive({
+  message: '',
 })
 
 const variationForm = reactive<CreateVariationPayload & UpdateVariationPayload>({
@@ -410,11 +480,12 @@ function getRequestedTab() {
 
 const taskColumns = [
   { title: 'Title', dataIndex: 'title', key: 'title' },
-  { title: 'Assigned To', dataIndex: 'assignedUserName', key: 'assignedUserName' },
+  { title: 'Team', dataIndex: 'assignedUsers', key: 'assignedUsers' },
   { title: 'Description', dataIndex: 'description', key: 'description' },
+  { title: 'Start Date', dataIndex: 'startDate', key: 'startDate' },
   { title: 'Due Date', dataIndex: 'dueDate', key: 'dueDate' },
   { title: 'Status', dataIndex: 'status', key: 'status', width: 140 },
-  { title: 'Actions', key: 'actions', width: 100 },
+  { title: 'Actions', key: 'actions', width: 180 },
 ]
 
 const variationColumns = [
@@ -436,10 +507,16 @@ const attachmentColumns = [
 
 const assignableUserOptions = computed(() =>
   assignableUsers.value.map((user) => ({
-    label: `${user.name} (${user.email})`,
+    label: `${user.name} - ${user.role} - ${user.email}`,
     value: user.userId,
   })),
 )
+
+const taskBoardColumns = computed(() => ([
+  { status: 'Todo', label: t('todo'), items: tasks.value.filter((task) => task.status === 'Todo') },
+  { status: 'Doing', label: t('doing'), items: tasks.value.filter((task) => task.status === 'Doing') },
+  { status: 'Done', label: t('done'), items: tasks.value.filter((task) => task.status === 'Done') },
+]))
 
 async function fetchProject() {
   projectLoading.value = true
@@ -477,7 +554,6 @@ async function fetchAssignableUsers() {
   try {
     const { data } = await api.get<PagedResult<UserSummary>>('/users', {
       params: {
-        role: 'Contractor',
         isActive: true,
         pageNumber: 1,
         pageSize: 100,
@@ -486,7 +562,7 @@ async function fetchAssignableUsers() {
 
     assignableUsers.value = data.items
   } catch {
-    message.error('Failed to load contractors for task assignment.')
+    message.error('Failed to load users for task assignment.')
   }
 }
 
@@ -586,8 +662,10 @@ function openCreateTaskModal() {
   selectedTaskId.value = null
   taskForm.title = ''
   taskForm.description = ''
+  taskForm.startDate = ''
   taskForm.dueDate = ''
   taskForm.assignedUserId = undefined
+  taskForm.assignedUserIds = []
   taskModalOpen.value = true
 }
 
@@ -596,14 +674,22 @@ function openEditTaskModal(task: TaskItem) {
   selectedTaskId.value = task.taskItemId
   taskForm.title = task.title
   taskForm.description = task.description ?? ''
+  taskForm.startDate = toLocalInputValue(task.startDate ?? task.createdAt)
   taskForm.dueDate = toLocalInputValue(task.dueDate)
   taskForm.assignedUserId = task.assignedUserId ?? undefined
+  taskForm.assignedUserIds = [...task.assignedUserIds]
   taskModalOpen.value = true
 }
 
+function openTaskSmsModal(task: TaskItem) {
+  selectedSmsTask.value = task
+  taskSmsForm.message = ''
+  taskSmsModalOpen.value = true
+}
+
 async function submitTask() {
-  if (!taskForm.title.trim() || !taskForm.dueDate) {
-    message.warning('Task title and due date are required.')
+  if (!taskForm.title.trim() || !taskForm.startDate || !taskForm.dueDate) {
+    message.warning('Task title, start date, and due date are required.')
     return
   }
 
@@ -612,8 +698,10 @@ async function submitTask() {
     const payload = {
       title: taskForm.title,
       description: taskForm.description || null,
+      startDate: new Date(taskForm.startDate).toISOString(),
       dueDate: new Date(taskForm.dueDate).toISOString(),
-      assignedUserId: taskForm.assignedUserId || null,
+      assignedUserId: taskForm.assignedUserIds?.[0] || null,
+      assignedUserIds: taskForm.assignedUserIds?.length ? taskForm.assignedUserIds : [],
     }
 
     if (taskModalMode.value === 'create') {
@@ -640,6 +728,34 @@ async function updateTaskStatus(taskId: string, status: UpdateTaskStatusPayload[
     await fetchTasks()
   } catch {
     message.error('Failed to update task status.')
+  }
+}
+
+async function submitTaskSms() {
+  if (!selectedSmsTask.value) {
+    return
+  }
+
+  taskSmsSending.value = true
+  try {
+    const { data } = await api.post<TaskSmsResult>(`/tasks/${selectedSmsTask.value.taskItemId}/notify-sms`, {
+      message: taskSmsForm.message || null,
+    })
+
+    const summaryParts = [`Sent ${data.sentCount} of ${data.attemptedCount} attempted messages.`]
+    if (data.skippedRecipients.length > 0) {
+      summaryParts.push(`Skipped: ${data.skippedRecipients.join(', ')}`)
+    }
+    if (data.failedRecipients.length > 0) {
+      summaryParts.push(`Failed: ${data.failedRecipients.join(', ')}`)
+    }
+
+    message.success(summaryParts.join(' '))
+    taskSmsModalOpen.value = false
+  } catch (error) {
+    message.error(extractApiError(error, 'Failed to send SMS notifications.'))
+  } finally {
+    taskSmsSending.value = false
   }
 }
 
@@ -849,6 +965,11 @@ function toDateInputValue(value?: string | null) {
   return value ? new Date(value).toISOString().slice(0, 10) : ''
 }
 
+function extractApiError(error: unknown, fallback: string) {
+  const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+  return apiMessage || fallback
+}
+
 watch(
   () => route.query.tab,
   () => {
@@ -905,6 +1026,24 @@ onMounted(() => {
   color: #64748b;
 }
 
+.task-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.task-board-column {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.task-board-title {
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .project-desktop {
     display: none;
@@ -912,6 +1051,10 @@ onMounted(() => {
 
   .project-mobile {
     display: block;
+  }
+
+  .task-board {
+    grid-template-columns: 1fr;
   }
 }
 </style>

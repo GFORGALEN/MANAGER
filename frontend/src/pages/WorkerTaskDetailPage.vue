@@ -12,6 +12,11 @@
           <a-descriptions-item label="Project">{{ task.projectName }}</a-descriptions-item>
           <a-descriptions-item label="Project Address">{{ task.projectAddress }}</a-descriptions-item>
           <a-descriptions-item label="Description">{{ task.description || 'No description' }}</a-descriptions-item>
+          <a-descriptions-item label="Team Members">
+            <a-space wrap>
+              <a-tag v-for="user in task.assignedUsers" :key="user.userId">{{ user.name }} · {{ user.role }}</a-tag>
+            </a-space>
+          </a-descriptions-item>
           <a-descriptions-item label="Due Date">{{ formatDate(task.dueDate) }}</a-descriptions-item>
           <a-descriptions-item label="Status">
             <a-space>

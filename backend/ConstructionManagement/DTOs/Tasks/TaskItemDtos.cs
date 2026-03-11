@@ -49,6 +49,21 @@ namespace ConstructionManagement.DTOs.Tasks
         public string? AssignedUserName { get; set; }
 
         /// <summary>
+        /// All assigned user IDs.
+        /// </summary>
+        public List<Guid> AssignedUserIds { get; set; } = [];
+
+        /// <summary>
+        /// All assigned users for this task.
+        /// </summary>
+        public List<TaskAssigneeDto> AssignedUsers { get; set; } = [];
+
+        /// <summary>
+        /// Planned start date for the task.
+        /// </summary>
+        public DateTime StartDate { get; set; }
+
+        /// <summary>
         /// Planned due date for the task.
         /// </summary>
         public DateTime DueDate { get; set; }
@@ -110,6 +125,21 @@ namespace ConstructionManagement.DTOs.Tasks
         public string? AssignedUserName { get; set; }
 
         /// <summary>
+        /// All assigned user IDs.
+        /// </summary>
+        public List<Guid> AssignedUserIds { get; set; } = [];
+
+        /// <summary>
+        /// All assigned users for this task.
+        /// </summary>
+        public List<TaskAssigneeDto> AssignedUsers { get; set; } = [];
+
+        /// <summary>
+        /// Planned start date for the task.
+        /// </summary>
+        public DateTime StartDate { get; set; }
+
+        /// <summary>
         /// Planned due date for the task.
         /// </summary>
         public DateTime DueDate { get; set; }
@@ -144,6 +174,20 @@ namespace ConstructionManagement.DTOs.Tasks
     }
 
     /// <summary>
+    /// Minimal assignee summary nested under task responses.
+    /// </summary>
+    public class TaskAssigneeDto
+    {
+        public Guid UserId { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+
+        public string Role { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// Request body used to create a new task item.
     /// </summary>
     public class CreateTaskItemDto
@@ -161,6 +205,11 @@ namespace ConstructionManagement.DTOs.Tasks
         public string? Description { get; set; }
 
         /// <summary>
+        /// Planned start date for the task. If omitted, the backend uses the current UTC time.
+        /// </summary>
+        public DateTime? StartDate { get; set; }
+
+        /// <summary>
         /// Planned due date for the task.
         /// </summary>
         [Required]
@@ -170,6 +219,11 @@ namespace ConstructionManagement.DTOs.Tasks
         /// Optional contractor user ID assigned to the task.
         /// </summary>
         public Guid? AssignedUserId { get; set; }
+
+        /// <summary>
+        /// Optional list of assigned user IDs for collaborative work.
+        /// </summary>
+        public List<Guid>? AssignedUserIds { get; set; }
     }
 
     /// <summary>
@@ -203,6 +257,11 @@ namespace ConstructionManagement.DTOs.Tasks
         public string? Description { get; set; }
 
         /// <summary>
+        /// Updated planned start date for the task. If omitted, the backend keeps the existing start date.
+        /// </summary>
+        public DateTime? StartDate { get; set; }
+
+        /// <summary>
         /// Updated due date for the task.
         /// </summary>
         [Required]
@@ -212,6 +271,11 @@ namespace ConstructionManagement.DTOs.Tasks
         /// Optional contractor user ID assigned to the task.
         /// </summary>
         public Guid? AssignedUserId { get; set; }
+
+        /// <summary>
+        /// Optional list of assigned user IDs for collaborative work.
+        /// </summary>
+        public List<Guid>? AssignedUserIds { get; set; }
     }
 
     public static class TaskItemDtoMappings
@@ -228,6 +292,19 @@ namespace ConstructionManagement.DTOs.Tasks
                 Status = taskItem.Status,
                 AssignedUserId = taskItem.AssignedUserId,
                 AssignedUserName = taskItem.AssignedUser?.Name,
+                AssignedUserIds = taskItem.TaskAssignments
+                    .Select(taskAssignment => taskAssignment.UserId)
+                    .ToList(),
+                AssignedUsers = taskItem.TaskAssignments
+                    .Select(taskAssignment => new TaskAssigneeDto
+                    {
+                        UserId = taskAssignment.UserId,
+                        Name = taskAssignment.User.Name,
+                        Email = taskAssignment.User.Email,
+                        Role = taskAssignment.User.Role
+                    })
+                    .ToList(),
+                StartDate = taskItem.StartDate,
                 DueDate = taskItem.DueDate,
                 CreatedAt = taskItem.CreatedAt
             };
@@ -246,6 +323,19 @@ namespace ConstructionManagement.DTOs.Tasks
                 ProjectAddress = taskItem.Project?.Address ?? string.Empty,
                 AssignedUserId = taskItem.AssignedUserId,
                 AssignedUserName = taskItem.AssignedUser?.Name,
+                AssignedUserIds = taskItem.TaskAssignments
+                    .Select(taskAssignment => taskAssignment.UserId)
+                    .ToList(),
+                AssignedUsers = taskItem.TaskAssignments
+                    .Select(taskAssignment => new TaskAssigneeDto
+                    {
+                        UserId = taskAssignment.UserId,
+                        Name = taskAssignment.User.Name,
+                        Email = taskAssignment.User.Email,
+                        Role = taskAssignment.User.Role
+                    })
+                    .ToList(),
+                StartDate = taskItem.StartDate,
                 DueDate = taskItem.DueDate,
                 CreatedAt = taskItem.CreatedAt,
                 Attachments = taskItem.Project?.Attachments

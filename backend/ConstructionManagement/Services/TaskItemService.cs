@@ -1,5 +1,6 @@
 using ConstructionManagement.Data;
 using ConstructionManagement.DTOs.Common;
+using ConstructionManagement.DTOs.Notifications;
 using ConstructionManagement.DTOs.Tasks;
 using ConstructionManagement.Entities;
 using ConstructionManagement.Helpers;
@@ -12,11 +13,13 @@ namespace ConstructionManagement.Services
     {
         private readonly AppDbContext _context;
         private readonly ILogger<TaskItemService> _logger;
+        private readonly ISmsService _smsService;
 
-        public TaskItemService(AppDbContext context, ILogger<TaskItemService> logger)
+        public TaskItemService(AppDbContext context, ILogger<TaskItemService> logger, ISmsService smsService)
         {
             _context = context;
             _logger = logger;
+            _smsService = smsService;
         }
 
         public async Task<PagedResultDto<TaskItemListDto>?> GetProjectTasksAsync(Guid projectId, TaskItemQueryDto query, CancellationToken cancellationToken = default)
@@ -47,6 +50,8 @@ namespace ConstructionManagement.Services
             var (items, totalCount) = await tasks
                 .Include(task => task.Project)
                 .Include(task => task.AssignedUser)
+                .Include(task => task.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
                 .Select(task => task.ToListDto())
                 .ToPagedResultAsync(query.PageNumber, query.PageSize, cancellationToken);
 
@@ -65,6 +70,8 @@ namespace ConstructionManagement.Services
                 .Include(item => item.Project)
                 .ThenInclude(project => project.Attachments)
                 .Include(item => item.AssignedUser)
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
                 .FirstOrDefaultAsync(item => item.TaskItemId == id, cancellationToken);
             if (task is null)
             {
@@ -90,10 +97,26 @@ namespace ConstructionManagement.Services
                 Title = request.Title.Trim(),
                 Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
                 Status = "Todo",
+                StartDate = NormalizeStartDate(request.StartDate),
                 DueDate = request.DueDate,
                 AssignedUserId = await ValidateAssignedUserAsync(request.AssignedUserId, cancellationToken),
                 CreatedAt = DateTime.UtcNow
             };
+
+            var assignmentIds = await ValidateAssignedUsersAsync(request.AssignedUserId, request.AssignedUserIds, cancellationToken);
+            task.AssignedUserId = assignmentIds.FirstOrDefault();
+            task.TaskAssignments = assignmentIds
+                .Select(userId => new TaskAssignment
+                {
+                    TaskItemId = task.TaskItemId,
+                    UserId = userId
+                })
+                .ToList();
+
+            if (task.DueDate < task.StartDate)
+            {
+                throw new ValidationException("Task due date cannot be earlier than start date.");
+            }
 
             _context.TaskItems.Add(task);
             await _context.SaveChangesAsync(cancellationToken);
@@ -107,6 +130,8 @@ namespace ConstructionManagement.Services
                 .Include(item => item.Project)
                 .ThenInclude(project => project.Attachments)
                 .Include(item => item.AssignedUser)
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
                 .FirstOrDefaultAsync(item => item.TaskItemId == id, cancellationToken);
             if (task is null)
             {
@@ -116,8 +141,16 @@ namespace ConstructionManagement.Services
 
             task.Title = request.Title.Trim();
             task.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            task.StartDate = NormalizeStartDate(request.StartDate, task.StartDate);
             task.DueDate = request.DueDate;
-            task.AssignedUserId = await ValidateAssignedUserAsync(request.AssignedUserId, cancellationToken);
+            var assignmentIds = await ValidateAssignedUsersAsync(request.AssignedUserId, request.AssignedUserIds, cancellationToken);
+            task.AssignedUserId = assignmentIds.FirstOrDefault();
+            await SyncTaskAssignmentsAsync(task, assignmentIds, cancellationToken);
+
+            if (task.DueDate < task.StartDate)
+            {
+                throw new ValidationException("Task due date cannot be earlier than start date.");
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
             return task.ToDetailDto();
@@ -129,6 +162,8 @@ namespace ConstructionManagement.Services
                 .Include(item => item.Project)
                 .ThenInclude(project => project.Attachments)
                 .Include(item => item.AssignedUser)
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
                 .FirstOrDefaultAsync(item => item.TaskItemId == id, cancellationToken);
             if (task is null)
             {
@@ -144,7 +179,7 @@ namespace ConstructionManagement.Services
         public async Task<PagedResultDto<TaskItemListDto>> GetMyTasksAsync(Guid userId, TaskItemQueryDto query, CancellationToken cancellationToken = default)
         {
             var tasks = _context.TaskItems
-                .Where(task => task.AssignedUserId == userId);
+                .Where(task => task.TaskAssignments.Any(taskAssignment => taskAssignment.UserId == userId));
 
             if (!string.IsNullOrWhiteSpace(query.Status))
             {
@@ -165,6 +200,8 @@ namespace ConstructionManagement.Services
             var (items, totalCount) = await tasks
                 .Include(task => task.Project)
                 .Include(task => task.AssignedUser)
+                .Include(task => task.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
                 .Select(task => task.ToListDto())
                 .ToPagedResultAsync(query.PageNumber, query.PageSize, cancellationToken);
 
@@ -183,7 +220,9 @@ namespace ConstructionManagement.Services
                 .Include(item => item.Project)
                 .ThenInclude(project => project.Attachments)
                 .Include(item => item.AssignedUser)
-                .FirstOrDefaultAsync(item => item.TaskItemId == id && item.AssignedUserId == userId, cancellationToken);
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
+                .FirstOrDefaultAsync(item => item.TaskItemId == id && item.TaskAssignments.Any(taskAssignment => taskAssignment.UserId == userId), cancellationToken);
 
             if (task is null)
             {
@@ -200,7 +239,9 @@ namespace ConstructionManagement.Services
                 .Include(item => item.Project)
                 .ThenInclude(project => project.Attachments)
                 .Include(item => item.AssignedUser)
-                .FirstOrDefaultAsync(item => item.TaskItemId == id && item.AssignedUserId == userId, cancellationToken);
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
+                .FirstOrDefaultAsync(item => item.TaskItemId == id && item.TaskAssignments.Any(taskAssignment => taskAssignment.UserId == userId), cancellationToken);
 
             if (task is null)
             {
@@ -211,6 +252,75 @@ namespace ConstructionManagement.Services
             task.Status = StatusValidators.ValidateTaskStatus(request.Status);
             await _context.SaveChangesAsync(cancellationToken);
             return task.ToDetailDto();
+        }
+
+        public async Task<TaskSmsResultDto?> SendTaskSmsAsync(Guid taskId, string? customMessage, CancellationToken cancellationToken = default)
+        {
+            var task = await _context.TaskItems
+                .Include(item => item.Project)
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
+                .FirstOrDefaultAsync(item => item.TaskItemId == taskId, cancellationToken);
+
+            if (task is null)
+            {
+                _logger.LogWarning("Task {TaskId} was not found for SMS notification", taskId);
+                return null;
+            }
+
+            var recipients = task.TaskAssignments
+                .Select(taskAssignment => taskAssignment.User)
+                .Where(user => user.IsActive)
+                .GroupBy(user => user.UserId)
+                .Select(group => group.First())
+                .ToList();
+
+            if (recipients.Count == 0)
+            {
+                throw new ValidationException("This task has no active assigned users to notify.");
+            }
+
+            var messageBody = BuildTaskSmsMessage(task, customMessage);
+            var result = new TaskSmsResultDto
+            {
+                TaskItemId = task.TaskItemId,
+                TaskTitle = task.Title
+            };
+
+            foreach (var user in recipients)
+            {
+                if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+                {
+                    result.SkippedRecipients.Add($"{user.Name} (missing phone number)");
+                    continue;
+                }
+
+                if (!LooksLikeE164(user.PhoneNumber))
+                {
+                    result.SkippedRecipients.Add($"{user.Name} (phone must be in E.164 format)");
+                    continue;
+                }
+
+                result.AttemptedCount++;
+
+                try
+                {
+                    await _smsService.SendAsync(user.PhoneNumber.Trim(), messageBody, cancellationToken);
+                    result.SentCount++;
+                }
+                catch (ValidationException ex)
+                {
+                    result.FailedRecipients.Add($"{user.Name} ({ex.Message})");
+                }
+            }
+
+            _logger.LogInformation(
+                "Task SMS notification completed for task {TaskId}. Attempted: {AttemptedCount}, Sent: {SentCount}",
+                taskId,
+                result.AttemptedCount,
+                result.SentCount);
+
+            return result;
         }
 
         private async Task<Guid?> ValidateAssignedUserAsync(Guid? assignedUserId, CancellationToken cancellationToken)
@@ -226,17 +336,96 @@ namespace ConstructionManagement.Services
                 throw new ValidationException("Assigned user was not found.");
             }
 
-            if (assignedUser.Role != "Contractor")
-            {
-                throw new ValidationException("Tasks can only be assigned to Contractor users.");
-            }
-
             if (!assignedUser.IsActive)
             {
                 throw new ValidationException("Tasks cannot be assigned to inactive users.");
             }
 
             return assignedUser.UserId;
+        }
+
+        private async Task<List<Guid>> ValidateAssignedUsersAsync(Guid? assignedUserId, List<Guid>? assignedUserIds, CancellationToken cancellationToken)
+        {
+            var normalizedIds = (assignedUserIds ?? [])
+                .Append(assignedUserId ?? Guid.Empty)
+                .Where(userId => userId != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (normalizedIds.Count == 0)
+            {
+                return [];
+            }
+
+            var users = await _context.Users
+                .Where(user => normalizedIds.Contains(user.UserId))
+                .ToListAsync(cancellationToken);
+
+            if (users.Count != normalizedIds.Count)
+            {
+                throw new ValidationException("One or more assigned users were not found.");
+            }
+
+            if (users.Any(user => !user.IsActive))
+            {
+                throw new ValidationException("Tasks cannot be assigned to inactive users.");
+            }
+
+            return normalizedIds;
+        }
+
+        private async Task SyncTaskAssignmentsAsync(TaskItem task, List<Guid> assignmentIds, CancellationToken cancellationToken)
+        {
+            await _context.Entry(task)
+                .Collection(item => item.TaskAssignments)
+                .LoadAsync(cancellationToken);
+
+            var existingAssignments = task.TaskAssignments.ToList();
+            var toRemove = existingAssignments
+                .Where(taskAssignment => !assignmentIds.Contains(taskAssignment.UserId))
+                .ToList();
+
+            if (toRemove.Count > 0)
+            {
+                _context.TaskAssignments.RemoveRange(toRemove);
+            }
+
+            var existingUserIds = existingAssignments
+                .Select(taskAssignment => taskAssignment.UserId)
+                .ToHashSet();
+
+            foreach (var userId in assignmentIds.Where(userId => !existingUserIds.Contains(userId)))
+            {
+                task.TaskAssignments.Add(new TaskAssignment
+                {
+                    TaskItemId = task.TaskItemId,
+                    UserId = userId
+                });
+            }
+        }
+
+        private static DateTime NormalizeStartDate(DateTime? startDate, DateTime? fallback = null)
+        {
+            return startDate ?? fallback ?? DateTime.UtcNow;
+        }
+
+        private static string BuildTaskSmsMessage(TaskItem task, string? customMessage)
+        {
+            if (!string.IsNullOrWhiteSpace(customMessage))
+            {
+                return customMessage.Trim();
+            }
+
+            var projectName = task.Project?.Name ?? "Project";
+            return $"Task update: {task.Title}. Project: {projectName}. Status: {task.Status}. Start: {task.StartDate:yyyy-MM-dd HH:mm}. Due: {task.DueDate:yyyy-MM-dd HH:mm}.";
+        }
+
+        private static bool LooksLikeE164(string phoneNumber)
+        {
+            var normalized = phoneNumber.Trim();
+            return normalized.Length >= 8 &&
+                normalized.StartsWith('+') &&
+                normalized.Skip(1).All(char.IsDigit);
         }
     }
 }

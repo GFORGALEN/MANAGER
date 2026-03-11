@@ -1,17 +1,17 @@
 <template>
   <div class="page-shell">
     <a-card class="page-card" :bordered="false">
-      <template #title>Projects</template>
+      <template #title>{{ t('projectsTitle') }}</template>
       <template #extra>
         <a-space class="toolbar-wrap">
           <a-input-search
             v-model:value="keyword"
-            placeholder="Search by name or address"
+            :placeholder="t('projectsSearch')"
             class="toolbar-search"
             @search="fetchProjects"
           />
-          <a-button type="primary" @click="openCreateModal">New Project</a-button>
-          <a-button @click="fetchProjects">Refresh</a-button>
+          <a-button type="primary" @click="openCreateModal">{{ t('newProject') }}</a-button>
+          <a-button @click="fetchProjects">{{ t('refresh') }}</a-button>
         </a-space>
       </template>
 
@@ -36,7 +36,7 @@
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-space>
-              <a-button size="small" @click="goToProject(record.projectId)">Open</a-button>
+              <a-button size="small" @click="goToProject(record.projectId)">{{ t('open') }}</a-button>
               <a-popconfirm
                 title="Delete this project?"
                 ok-text="Delete"
@@ -95,43 +95,43 @@
 
     <a-modal
       v-model:open="createModalOpen"
-      title="Create Project"
+      :title="t('createProject')"
       ok-text="Create"
       :confirm-loading="savingProject"
       @ok="submitCreateProject"
     >
       <a-form layout="vertical">
-        <a-form-item label="Project Code" required>
-          <a-input v-model:value="projectForm.code" placeholder="Enter project code" />
+        <a-form-item :label="t('projectCode')" required>
+          <a-input v-model:value="projectForm.code" :placeholder="t('projectCode')" />
         </a-form-item>
-        <a-form-item label="Project Name" required>
-          <a-input v-model:value="projectForm.name" placeholder="Enter project name" />
+        <a-form-item :label="t('projectName')" required>
+          <a-input v-model:value="projectForm.name" :placeholder="t('projectName')" />
         </a-form-item>
-        <a-form-item label="Address" required>
-          <a-input v-model:value="projectForm.address" placeholder="Enter project address" />
+        <a-form-item :label="t('address')" required>
+          <a-input v-model:value="projectForm.address" :placeholder="t('address')" />
         </a-form-item>
-        <a-form-item label="Client Name">
-          <a-input v-model:value="projectForm.clientName" placeholder="Enter client name" />
+        <a-form-item :label="t('clientName')">
+          <a-input v-model:value="projectForm.clientName" :placeholder="t('clientName')" />
         </a-form-item>
-        <a-form-item label="Status" required>
+        <a-form-item :label="t('status')" required>
           <a-select v-model:value="projectForm.status">
-            <a-select-option value="Planning">Planning</a-select-option>
-            <a-select-option value="Active">Active</a-select-option>
-            <a-select-option value="OnHold">On Hold</a-select-option>
-            <a-select-option value="Completed">Completed</a-select-option>
+            <a-select-option value="Planning">{{ projectStatusLabel('Planning') }}</a-select-option>
+            <a-select-option value="Active">{{ projectStatusLabel('Active') }}</a-select-option>
+            <a-select-option value="OnHold">{{ projectStatusLabel('OnHold') }}</a-select-option>
+            <a-select-option value="Completed">{{ projectStatusLabel('Completed') }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="Budget">
+        <a-form-item :label="t('budget')">
           <a-input-number v-model:value="projectForm.budget" style="width: 100%" :min="0" />
         </a-form-item>
-        <a-form-item label="Start Date">
+        <a-form-item :label="t('startDate')">
           <a-input v-model:value="projectForm.startDate" type="date" />
         </a-form-item>
-        <a-form-item label="End Date">
+        <a-form-item :label="t('endDate')">
           <a-input v-model:value="projectForm.endDate" type="date" />
         </a-form-item>
-        <a-form-item label="Description">
-          <a-textarea v-model:value="projectForm.description" :rows="3" placeholder="Project summary" />
+        <a-form-item :label="t('description')">
+          <a-textarea v-model:value="projectForm.description" :rows="3" :placeholder="t('description')" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -144,10 +144,12 @@ import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 
 import api from '@/services/api'
+import { useI18n } from '@/services/i18n'
 import type { PagedResult } from '@/types/common'
 import type { CreateProjectPayload, ProjectListItem } from '@/types/project'
 
 const router = useRouter()
+const { t, projectStatusLabel } = useI18n()
 
 const projects = ref<ProjectListItem[]>([])
 const loading = ref(false)
@@ -329,7 +331,9 @@ onMounted(fetchProjects)
 }
 
 .mobile-project-card {
-  border-radius: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
 }
 
 .mobile-card-title {
@@ -347,6 +351,15 @@ onMounted(fetchProjects)
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+:deep(.ant-table-wrapper .ant-table-row a) {
+  font-weight: 700;
+}
+
+:deep(.ant-table-wrapper .ant-tag) {
+  border-radius: 999px;
+  padding-inline: 10px;
 }
 
 @media (max-width: 768px) {

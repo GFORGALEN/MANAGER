@@ -15,6 +15,7 @@ const string FrontendCorsPolicy = "FrontendCorsPolicy";
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection(SmsOptions.SectionName));
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
@@ -76,6 +77,7 @@ builder.Services.AddScoped<IVariationService, VariationService>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddHttpClient<ISmsService, TwilioSmsService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();

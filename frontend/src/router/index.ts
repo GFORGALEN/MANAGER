@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import AttachmentHubPage from '@/pages/AttachmentHubPage.vue'
 import ProjectDetailPage from '@/pages/ProjectDetailPage.vue'
 import ProjectListPage from '@/pages/ProjectListPage.vue'
+import ProjectVisualPage from '@/pages/ProjectVisualPage.vue'
 import RegisterPage from '@/pages/RegisterPage.vue'
 import TaskHubPage from '@/pages/TaskHubPage.vue'
 import VariationHubPage from '@/pages/VariationHubPage.vue'
@@ -51,6 +52,15 @@ const router = createRouter({
           component: ProjectListPage,
           meta: {
             title: 'Projects',
+            roles: ['Admin', 'PM'],
+          },
+        },
+        {
+          path: 'progress',
+          name: 'progress',
+          component: ProjectVisualPage,
+          meta: {
+            title: 'Project Progress',
             roles: ['Admin', 'PM'],
           },
         },

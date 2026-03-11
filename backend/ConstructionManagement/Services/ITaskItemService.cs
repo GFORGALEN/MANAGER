@@ -1,4 +1,5 @@
 using ConstructionManagement.DTOs.Common;
+using ConstructionManagement.DTOs.Notifications;
 using ConstructionManagement.DTOs.Tasks;
 
 namespace ConstructionManagement.Services
@@ -20,5 +21,7 @@ namespace ConstructionManagement.Services
         Task<TaskItemDetailDto?> GetMyTaskAsync(Guid userId, Guid id, CancellationToken cancellationToken = default);
 
         Task<TaskItemDetailDto?> UpdateMyTaskStatusAsync(Guid userId, Guid id, UpdateTaskStatusDto request, CancellationToken cancellationToken = default);
+
+        Task<TaskSmsResultDto?> SendTaskSmsAsync(Guid taskId, string? customMessage, CancellationToken cancellationToken = default);
     }
 }

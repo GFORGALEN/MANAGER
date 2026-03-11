@@ -12,6 +12,8 @@ namespace ConstructionManagement.Entities
 
         public string Status { get; set; } = "Todo";
 
+        public DateTime StartDate { get; set; }
+
         public DateTime DueDate { get; set; }
 
         public Guid? AssignedUserId { get; set; }
@@ -21,5 +23,7 @@ namespace ConstructionManagement.Entities
         public Project Project { get; set; } = null!;
 
         public User? AssignedUser { get; set; }
+
+        public ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
     }
 }

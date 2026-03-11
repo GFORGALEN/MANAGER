@@ -1,10 +1,13 @@
 <template>
   <div class="login-shell">
     <a-card class="login-card" :bordered="false">
+      <div class="login-toolbar">
+        <LanguageSwitcher />
+      </div>
       <div class="login-copy">
-        <span class="eyebrow">Construction Management</span>
-        <h1>Create worker account</h1>
-        <p>Public registration only creates Contractor accounts.</p>
+        <span class="eyebrow">{{ t('loginEyebrow') }}</span>
+        <h1>{{ t('registerTitle') }}</h1>
+        <p>{{ t('registerCopy') }}</p>
       </div>
 
       <a-alert
@@ -24,31 +27,31 @@
       />
 
       <a-form :model="formState" layout="vertical">
-        <a-form-item label="Name">
+        <a-form-item :label="t('registerName')">
           <a-input v-model:value="formState.name" size="large" />
         </a-form-item>
 
-        <a-form-item label="Email">
+        <a-form-item :label="t('registerEmail')">
           <a-input v-model:value="formState.email" size="large" />
         </a-form-item>
 
-        <a-form-item label="Phone Number">
+        <a-form-item :label="t('registerPhone')">
           <a-input v-model:value="formState.phoneNumber" size="large" />
         </a-form-item>
 
-        <a-form-item label="Password">
+        <a-form-item :label="t('registerPassword')">
           <a-input-password v-model:value="formState.password" size="large" />
         </a-form-item>
 
-        <a-form-item label="Confirm Password">
+        <a-form-item :label="t('registerConfirm')">
           <a-input-password v-model:value="formState.confirmPassword" size="large" @press-enter="handleSubmit" />
         </a-form-item>
 
         <a-space direction="vertical" style="width: 100%">
           <a-button type="primary" block size="large" :loading="submitting" @click="handleSubmit">
-            Register
+            {{ t('registerAction') }}
           </a-button>
-          <a-button block @click="router.push({ name: 'login' })">Back to Sign In</a-button>
+          <a-button block @click="router.push({ name: 'login' })">{{ t('registerBack') }}</a-button>
         </a-space>
       </a-form>
     </a-card>
@@ -59,10 +62,13 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import api from '@/services/api'
+import { useI18n } from '@/services/i18n'
 import type { RegisterRequest, RegisterResponse } from '@/types/auth'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const formState = reactive<RegisterRequest>({
   name: '',
@@ -78,12 +84,12 @@ const successMessage = ref('')
 
 async function handleSubmit() {
   if (!formState.name.trim() || !formState.email.trim() || !formState.password || !formState.confirmPassword) {
-    errorMessage.value = 'Name, email, password, and confirm password are required.'
+    errorMessage.value = t('registerRequired')
     return
   }
 
   if (formState.password !== formState.confirmPassword) {
-    errorMessage.value = 'Password and confirm password must match.'
+    errorMessage.value = t('registerMatch')
     return
   }
 
@@ -111,13 +117,25 @@ async function handleSubmit() {
   place-items: center;
   min-height: 100vh;
   padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.12), transparent 22%);
 }
 
 .login-card {
   width: 100%;
   max-width: 500px;
   border-radius: 28px;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.login-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .login-copy {
@@ -137,9 +155,9 @@ async function handleSubmit() {
 
 .eyebrow {
   display: inline-flex;
-  padding: 6px 10px;
+  padding: 7px 12px;
   border-radius: 999px;
-  background: #dbeafe;
+  background: linear-gradient(135deg, #dbeafe, #e0f2fe);
   color: #1d4ed8;
   font-size: 12px;
   font-weight: 700;

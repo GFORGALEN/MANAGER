@@ -20,6 +20,8 @@ namespace ConstructionManagement.Data
 
         public DbSet<User> Users { get; set; }
 
+        public DbSet<TaskAssignment> TaskAssignments { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Project>()
@@ -37,6 +39,21 @@ namespace ConstructionManagement.Data
                 .WithMany(user => user.AssignedTasks)
                 .HasForeignKey(taskItem => taskItem.AssignedUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<TaskAssignment>()
+                .HasKey(taskAssignment => new { taskAssignment.TaskItemId, taskAssignment.UserId });
+
+            modelBuilder.Entity<TaskAssignment>()
+                .HasOne(taskAssignment => taskAssignment.TaskItem)
+                .WithMany(taskItem => taskItem.TaskAssignments)
+                .HasForeignKey(taskAssignment => taskAssignment.TaskItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskAssignment>()
+                .HasOne(taskAssignment => taskAssignment.User)
+                .WithMany(user => user.TaskAssignments)
+                .HasForeignKey(taskAssignment => taskAssignment.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Variation>()
                 .Property(variation => variation.Amount)

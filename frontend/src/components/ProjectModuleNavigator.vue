@@ -15,7 +15,7 @@
               class="hub-search"
               @search="fetchProjects"
             />
-            <a-button @click="fetchProjects">Refresh</a-button>
+            <a-button @click="fetchProjects">{{ t('refresh') }}</a-button>
           </a-space>
         </div>
 
@@ -44,7 +44,7 @@
             <template v-else-if="column.key === 'actions'">
               <a-space>
                 <a-button type="primary" @click="openModule(record.projectId)">
-                  Open {{ ctaLabel }}
+                  {{ t('open') }} {{ ctaLabel }}
                 </a-button>
                 <a-button @click="openProject(record.projectId)">Project Detail</a-button>
               </a-space>
@@ -68,7 +68,7 @@
                 <span class="muted">Created: {{ formatDate(project.createdAt) }}</span>
                 <a-space wrap>
                   <a-button size="small" type="primary" @click="openModule(project.projectId)">
-                    Open {{ ctaLabel }}
+                  {{ t('open') }} {{ ctaLabel }}
                   </a-button>
                   <a-button size="small" @click="openProject(project.projectId)">Project Detail</a-button>
                 </a-space>
@@ -99,6 +99,7 @@ import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 
 import api from '@/services/api'
+import { useI18n } from '@/services/i18n'
 import type { PagedResult } from '@/types/common'
 import type { ProjectListItem } from '@/types/project'
 
@@ -115,6 +116,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const router = useRouter()
+const { t } = useI18n()
 
 const projects = ref<ProjectListItem[]>([])
 const loading = ref(false)

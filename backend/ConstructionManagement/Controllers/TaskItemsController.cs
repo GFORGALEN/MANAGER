@@ -1,4 +1,5 @@
 using ConstructionManagement.DTOs.Common;
+using ConstructionManagement.DTOs.Notifications;
 using ConstructionManagement.DTOs.Tasks;
 using ConstructionManagement.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -125,6 +126,30 @@ namespace ConstructionManagement.Controllers
             }
 
             return Ok(task);
+        }
+
+        /// <summary>
+        /// Sends an SMS update to all active users assigned to a task.
+        /// </summary>
+        /// <param name="id">The task ID.</param>
+        /// <param name="request">Optional custom SMS body. If omitted, the backend sends a default task summary.</param>
+        /// <returns>A delivery summary including sent and skipped recipients.</returns>
+        [Authorize(Roles = "Admin,PM")]
+        [HttpPost("api/tasks/{id:guid}/notify-sms")]
+        public async Task<ActionResult<TaskSmsResultDto>> SendTaskSms(Guid id, [FromBody] SendTaskSmsDto request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var result = await _taskItemService.SendTaskSmsAsync(id, request.Message, cancellationToken);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
         }
     }
 }

@@ -7,13 +7,13 @@
       collapsed-width="0"
       theme="light"
       width="240"
-      style="border-inline-end: 1px solid #e5e7eb"
+      class="app-sider"
     >
       <div class="brand-block">
         <div class="brand-mark">CM</div>
         <div v-if="!collapsed" class="brand-copy">
-          <strong>Manager</strong>
-          <span>Construction Platform</span>
+          <strong>{{ t('brandTitle') }}</strong>
+          <span>{{ t('brandSubtitle') }}</span>
         </div>
       </div>
 
@@ -26,49 +26,55 @@
           <template #icon>
             <ProjectOutlined />
           </template>
-          Projects
+          {{ t('menuProjects') }}
+        </a-menu-item>
+        <a-menu-item v-if="isManagerView" key="/progress">
+          <template #icon>
+            <AppstoreOutlined />
+          </template>
+          {{ t('menuProgress') }}
         </a-menu-item>
         <a-menu-item v-if="isManagerView" key="/tasks">
           <template #icon>
             <CheckSquareOutlined />
           </template>
-          Tasks
+          {{ t('menuTasks') }}
         </a-menu-item>
         <a-menu-item v-if="isManagerView" key="/variations">
           <template #icon>
             <ProfileOutlined />
           </template>
-          Variations
+          {{ t('menuVariations') }}
         </a-menu-item>
         <a-menu-item v-if="isManagerView" key="/attachments">
           <template #icon>
             <PaperClipOutlined />
           </template>
-          Attachments
+          {{ t('menuAttachments') }}
         </a-menu-item>
         <a-menu-item v-if="isManagerView" key="/users">
           <template #icon>
             <TeamOutlined />
           </template>
-          Users
+          {{ t('menuUsers') }}
         </a-menu-item>
         <a-menu-item v-if="isWorkerView" key="/worker/dashboard">
           <template #icon>
             <AppstoreOutlined />
           </template>
-          Dashboard
+          {{ t('menuDashboard') }}
         </a-menu-item>
         <a-menu-item v-if="isWorkerView" key="/worker/tasks">
           <template #icon>
             <CheckSquareOutlined />
           </template>
-          My Tasks
+          {{ t('menuMyTasks') }}
         </a-menu-item>
         <a-menu-item v-if="isWorkerView" key="/worker/profile">
           <template #icon>
             <UserOutlined />
           </template>
-          Profile
+          {{ t('menuProfile') }}
         </a-menu-item>
       </a-menu>
     </a-layout-sider>
@@ -77,19 +83,20 @@
       <a-layout-header class="app-header">
         <div>
           <div class="header-title">{{ pageTitle }}</div>
-          <div class="header-subtitle">Manage projects, tasks, variations and attachments.</div>
+          <div class="header-subtitle">{{ t('headerSubtitle') }}</div>
         </div>
 
-        <a-space>
-          <a-tag color="blue">{{ currentUser?.role ?? 'Unknown' }}</a-tag>
+        <a-space class="header-actions">
+          <LanguageSwitcher />
+          <a-tag class="role-pill" color="blue">{{ roleLabel(currentUser?.role) || 'Unknown' }}</a-tag>
           <a-dropdown>
-            <a-button>
+            <a-button class="profile-button">
               {{ currentUserLabel }}
               <DownOutlined />
             </a-button>
             <template #overlay>
               <a-menu>
-                <a-menu-item key="logout" @click="logout">Logout</a-menu-item>
+                <a-menu-item key="logout" @click="logout">{{ t('logout') }}</a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -117,7 +124,9 @@ import {
   UserOutlined,
 } from '@ant-design/icons-vue'
 
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { clearSession, getCurrentRole, getCurrentUser, getCurrentUserLabel } from '@/services/auth'
+import { useI18n } from '@/services/i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -129,9 +138,14 @@ const currentRole = computed(() => getCurrentRole())
 const isWorkerView = computed(() => getCurrentRole() === 'Contractor')
 const isManagerView = computed(() => !isWorkerView.value)
 const roleThemeClass = computed(() => `role-theme-${(currentRole.value ?? 'guest').toLowerCase()}`)
+const { t, roleLabel } = useI18n()
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/projects')) {
     return ['/projects']
+  }
+
+  if (route.path.startsWith('/progress')) {
+    return ['/progress']
   }
 
   if (route.path.startsWith('/tasks')) {
@@ -182,18 +196,25 @@ function logout() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 16px 12px;
+  padding: 22px 18px 16px;
+}
+
+.app-sider {
+  border-inline-end: 1px solid rgba(226, 232, 240, 0.8);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.94)) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.55);
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
   background: linear-gradient(135deg, var(--role-color-start, #1677ff), var(--role-color-end, #0f4fb8));
   color: #fff;
   font-weight: 700;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
 }
 
 .brand-copy {
@@ -202,9 +223,39 @@ function logout() {
   line-height: 1.1;
 }
 
+.brand-copy strong {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
 .brand-copy span {
   color: #64748b;
   font-size: 12px;
+}
+
+:deep(.ant-menu) {
+  background: transparent;
+  border-inline-end: 0 !important;
+  padding: 0 12px 12px;
+}
+
+:deep(.ant-menu-light .ant-menu-item) {
+  margin-inline: 0;
+  margin-block: 6px;
+  height: 44px;
+  line-height: 44px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+:deep(.ant-menu-light .ant-menu-item-selected) {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(14, 165, 233, 0.1));
+}
+
+:deep(.ant-layout-sider-trigger) {
+  background: rgba(248, 250, 252, 0.96);
+  color: #334155;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .app-header {
@@ -220,14 +271,32 @@ function logout() {
   box-shadow: inset 0 4px 0 0 var(--role-soft, transparent);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .header-title {
   font-size: 22px;
   font-weight: 700;
   color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .header-subtitle {
   color: #64748b;
+}
+
+.role-pill {
+  padding-inline: 10px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.profile-button {
+  min-width: 112px;
+  justify-content: space-between;
 }
 
 .content-area {
@@ -260,6 +329,11 @@ function logout() {
     padding: 16px;
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 </style>

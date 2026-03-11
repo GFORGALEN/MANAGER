@@ -21,5 +21,7 @@ namespace ConstructionManagement.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
+
+        public ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
     }
 }

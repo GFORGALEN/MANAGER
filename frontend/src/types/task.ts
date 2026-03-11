@@ -7,6 +7,13 @@ export interface TaskAttachment {
   uploadedAt: string
 }
 
+export interface TaskAssignee {
+  userId: string
+  name: string
+  email: string
+  role: 'Admin' | 'PM' | 'Contractor' | string
+}
+
 export interface TaskItem {
   taskItemId: string
   projectId: string
@@ -16,6 +23,9 @@ export interface TaskItem {
   status: 'Todo' | 'Doing' | 'Done'
   assignedUserId?: string | null
   assignedUserName?: string | null
+  assignedUserIds: string[]
+  assignedUsers: TaskAssignee[]
+  startDate?: string | null
   dueDate: string
   createdAt: string
 }
@@ -23,19 +33,32 @@ export interface TaskItem {
 export interface CreateTaskPayload {
   title: string
   description?: string | null
+  startDate?: string | null
   dueDate: string
   assignedUserId?: string | null
+  assignedUserIds?: string[]
 }
 
 export interface UpdateTaskPayload {
   title: string
   description?: string | null
+  startDate?: string | null
   dueDate: string
   assignedUserId?: string | null
+  assignedUserIds?: string[]
 }
 
 export interface UpdateTaskStatusPayload {
   status: 'Todo' | 'Doing' | 'Done'
+}
+
+export interface TaskSmsResult {
+  taskItemId: string
+  taskTitle: string
+  attemptedCount: number
+  sentCount: number
+  skippedRecipients: string[]
+  failedRecipients: string[]
 }
 
 export interface TaskDetail extends TaskItem {
