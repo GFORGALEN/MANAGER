@@ -1,21 +1,27 @@
 :root {
-  color: #0f172a;
+  color: #111827;
   background:
-    radial-gradient(circle at 12% 10%, rgba(180, 83, 9, 0.09), transparent 18%),
-    radial-gradient(circle at 86% 14%, rgba(20, 83, 45, 0.08), transparent 16%),
-    linear-gradient(180deg, #ece5da 0%, #e2d9cb 48%, #d6cbbb 100%);
+    radial-gradient(circle at 14% 8%, rgba(244, 114, 182, 0.08), transparent 18%),
+    radial-gradient(circle at 82% 10%, rgba(59, 130, 246, 0.1), transparent 18%),
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.45), transparent 36%),
+    linear-gradient(180deg, #f6f1ea 0%, #ebe3d8 42%, #e3d9ce 100%);
   font-family:
-    "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    "SF Pro Display", "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  --shell-border: rgba(109, 76, 45, 0.16);
-  --shell-shadow: 0 24px 70px rgba(51, 38, 24, 0.08);
-  --card-shadow: 0 18px 50px rgba(51, 38, 24, 0.1);
-  --card-shadow-hover: 0 24px 64px rgba(51, 38, 24, 0.14);
-  --surface: rgba(245, 240, 232, 0.84);
-  --surface-strong: rgba(249, 244, 237, 0.94);
-  --text-soft: #6b5d4a;
-  --ring-soft: 0 0 0 4px rgba(180, 83, 9, 0.12);
+  --shell-border: rgba(120, 109, 96, 0.14);
+  --shell-shadow: 0 28px 90px rgba(36, 30, 24, 0.08);
+  --card-shadow: 0 20px 60px rgba(36, 30, 24, 0.08);
+  --card-shadow-hover: 0 28px 70px rgba(36, 30, 24, 0.12);
+  --surface: rgba(255, 252, 248, 0.68);
+  --surface-strong: rgba(255, 252, 248, 0.82);
+  --surface-elevated: rgba(255, 255, 255, 0.58);
+  --text-soft: #756857;
+  --text-muted: #8e7f6d;
+  --ring-soft: 0 0 0 4px rgba(59, 130, 246, 0.11);
+  --hairline: rgba(255, 255, 255, 0.55);
+  --hero-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(255, 250, 245, 0.42));
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
@@ -27,6 +33,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: transparent;
+  color: inherit;
 }
 
 #app {
@@ -34,24 +41,37 @@ body {
 }
 
 .page-shell {
-  padding: 24px;
+  padding: 26px;
+  animation: page-enter 0.75s var(--ease-out-quint);
 }
 
 .page-card {
-  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
   border: 1px solid var(--shell-border);
   background: var(--surface-strong);
   box-shadow: var(--card-shadow);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px) saturate(140%);
   transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease;
+    transform 0.35s var(--ease-out-quint),
+    box-shadow 0.35s var(--ease-out-quint),
+    border-color 0.35s var(--ease-out-quint);
+}
+
+.page-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hairline), transparent);
+  pointer-events: none;
 }
 
 .page-card:hover {
   box-shadow: var(--card-shadow-hover);
-  border-color: rgba(180, 83, 9, 0.24);
+  border-color: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
 }
 
 .ant-card,
@@ -63,7 +83,7 @@ body {
 
 .ant-card .ant-card-head {
   min-height: auto;
-  border-bottom: 1px solid rgba(191, 168, 138, 0.55);
+  border-bottom: 1px solid rgba(190, 180, 170, 0.28);
 }
 
 .ant-card .ant-card-head-wrapper {
@@ -72,32 +92,42 @@ body {
 
 .ant-card .ant-card-head-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .ant-card .ant-card-body {
-  padding: 22px;
+  padding: 24px;
 }
 
 .ant-btn {
-  border-radius: 12px;
+  border-radius: 999px;
   font-weight: 600;
+  height: 42px;
+  padding-inline: 18px;
   box-shadow: none;
+  transition:
+    transform 0.24s var(--ease-out-quint),
+    box-shadow 0.24s var(--ease-out-quint),
+    border-color 0.24s ease,
+    background 0.24s ease;
 }
 
 .ant-btn-primary {
-  background: linear-gradient(135deg, #b45309, #92400e);
+  background: linear-gradient(135deg, #111827, #374151);
   border-color: transparent;
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.18);
 }
 
 .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #c2410c, #9a3412) !important;
+  background: linear-gradient(135deg, #0f172a, #1f2937) !important;
   border-color: transparent !important;
+  transform: translateY(-1px);
 }
 
 .ant-btn:not(.ant-btn-primary):hover {
-  border-color: rgba(180, 83, 9, 0.36);
-  color: #92400e;
+  border-color: rgba(55, 65, 81, 0.22);
+  color: #111827;
+  transform: translateY(-1px);
 }
 
 .ant-input,
@@ -106,7 +136,10 @@ body {
 .ant-input-number,
 .ant-select-selector,
 .ant-picker {
-  border-radius: 12px !important;
+  border-radius: 18px !important;
+  border-color: rgba(120, 109, 96, 0.14) !important;
+  background: rgba(255, 255, 255, 0.56) !important;
+  backdrop-filter: blur(16px);
 }
 
 .ant-input:focus,
@@ -117,25 +150,35 @@ body {
 }
 
 .ant-table-wrapper .ant-table {
-  border-radius: 16px;
+  border-radius: 22px;
   overflow: hidden;
+  background: transparent;
 }
 
 .ant-table-wrapper .ant-table-thead > tr > th {
-  background: #efe7da;
-  color: #4b3f31;
+  background: rgba(240, 233, 226, 0.72);
+  color: #5f564d;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
+  border-bottom: 0 !important;
 }
 
 .ant-table-wrapper .ant-table-tbody > tr > td {
-  transition: background 0.18s ease;
+  background: rgba(255, 255, 255, 0.36);
+  border-bottom-color: rgba(120, 109, 96, 0.08) !important;
+  transition:
+    background 0.22s ease,
+    transform 0.22s ease;
 }
 
 .ant-table-wrapper .ant-table-tbody > tr:hover > td {
-  background: #f4ede2 !important;
+  background: rgba(255, 255, 255, 0.68) !important;
+}
+
+.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin-bottom: 0;
 }
 
 .ant-tabs .ant-tabs-tab {
@@ -149,7 +192,19 @@ body {
 .ant-pagination .ant-pagination-item,
 .ant-pagination .ant-pagination-prev,
 .ant-pagination .ant-pagination-next {
-  border-radius: 10px;
+  border-radius: 999px;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {
@@ -158,7 +213,7 @@ body {
   }
 
   .page-card {
-    border-radius: 16px;
+    border-radius: 22px;
   }
 
   .ant-card .ant-card-head {

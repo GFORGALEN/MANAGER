@@ -22,6 +22,8 @@ namespace ConstructionManagement.Services
 
         Task<TaskItemDetailDto?> UpdateMyTaskStatusAsync(Guid userId, Guid id, UpdateTaskStatusDto request, CancellationToken cancellationToken = default);
 
+        Task<TaskAdminNotificationResultDto?> NotifyMyTaskAdminAsync(Guid userId, Guid id, NotifyTaskAdminDto request, CancellationToken cancellationToken = default);
+
         Task<TaskSmsResultDto?> SendTaskSmsAsync(Guid taskId, string? customMessage, CancellationToken cancellationToken = default);
 
         Task<TaskEmailResultDto?> SendTaskEmailAsync(Guid taskId, string? customMessage, CancellationToken cancellationToken = default);

@@ -1,12 +1,15 @@
 <template>
   <ProjectModuleNavigator
-    title="Task Center"
-    description="Choose a project and jump directly into its task workspace."
+    :title="t('hubTaskTitle')"
+    :description="t('hubTaskDescription')"
     tab-key="tasks"
-    cta-label="Tasks"
+    :cta-label="t('hubTasksLabel')"
   />
 </template>
 
 <script setup lang="ts">
 import ProjectModuleNavigator from '@/components/ProjectModuleNavigator.vue'
+import { useI18n } from '@/services/i18n'
+
+const { t } = useI18n()
 </script>

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import AppLayout from '@/layouts/AppLayout.vue'
 import AttachmentHubPage from '@/pages/AttachmentHubPage.vue'
+import ManagerDashboardPage from '@/pages/ManagerDashboardPage.vue'
 import ProjectDetailPage from '@/pages/ProjectDetailPage.vue'
 import ProjectListPage from '@/pages/ProjectListPage.vue'
 import ProjectVisualPage from '@/pages/ProjectVisualPage.vue'
@@ -44,7 +45,16 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/projects',
+          redirect: '/dashboard',
+        },
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: ManagerDashboardPage,
+          meta: {
+            title: 'Dashboard',
+            roles: ['Admin', 'PM'],
+          },
         },
         {
           path: 'projects',

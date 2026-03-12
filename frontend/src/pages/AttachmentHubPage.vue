@@ -1,12 +1,15 @@
 <template>
   <ProjectModuleNavigator
-    title="Attachment Center"
-    description="Choose a project and jump directly into its attachment workspace."
+    :title="t('hubAttachmentTitle')"
+    :description="t('hubAttachmentDescription')"
     tab-key="attachments"
-    cta-label="Attachments"
+    :cta-label="t('hubAttachmentsLabel')"
   />
 </template>
 
 <script setup lang="ts">
 import ProjectModuleNavigator from '@/components/ProjectModuleNavigator.vue'
+import { useI18n } from '@/services/i18n'
+
+const { t } = useI18n()
 </script>

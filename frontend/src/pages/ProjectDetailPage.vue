@@ -1,65 +1,77 @@
 <template>
   <div class="page-shell">
     <a-space direction="vertical" size="large" style="width: 100%">
-      <a-card class="page-card" :bordered="false" :loading="projectLoading">
-        <template #title>Project Detail</template>
-        <template #extra>
-          <a-space class="detail-actions">
-            <a-button @click="openEditProjectModal" :disabled="!project">Edit Project</a-button>
-            <a-popconfirm title="Delete this project?" ok-text="Delete" cancel-text="Cancel" @confirm="deleteProject">
-              <a-button danger :disabled="!project">Delete</a-button>
-            </a-popconfirm>
-          </a-space>
-        </template>
-
-        <a-descriptions v-if="project" class="project-desktop" :column="1" bordered>
-          <a-descriptions-item label="Project ID">{{ project.projectId }}</a-descriptions-item>
-          <a-descriptions-item label="Code">{{ project.code }}</a-descriptions-item>
-          <a-descriptions-item label="Name">{{ project.name }}</a-descriptions-item>
-          <a-descriptions-item label="Address">{{ project.address }}</a-descriptions-item>
-          <a-descriptions-item label="Client">{{ project.clientName || 'Not set' }}</a-descriptions-item>
-          <a-descriptions-item label="Status">
-            <a-tag :color="projectStatusColor(project.status)">{{ projectStatusLabel(project.status) }}</a-tag>
-          </a-descriptions-item>
-          <a-descriptions-item label="Budget">{{ formatCurrency(project.budget ?? 0) }}</a-descriptions-item>
-          <a-descriptions-item label="Start Date">{{ formatOptionalDate(project.startDate) }}</a-descriptions-item>
-          <a-descriptions-item label="End Date">{{ formatOptionalDate(project.endDate) }}</a-descriptions-item>
-          <a-descriptions-item label="Description">{{ project.description || 'No description' }}</a-descriptions-item>
-          <a-descriptions-item label="Created At">{{ formatDate(project.createdAt) }}</a-descriptions-item>
-        </a-descriptions>
-
-        <div v-if="project" class="project-mobile">
-          <a-space direction="vertical" style="width: 100%">
-            <a-card size="small">
-              <div class="mobile-project-header">
-                <div>
-                  <strong>{{ project.name }}</strong>
-                  <div class="muted">#{{ project.code }}</div>
-                </div>
+      <a-card class="page-card project-overview-card" :bordered="false" :loading="projectLoading">
+        <div v-if="project" class="project-overview">
+          <div class="project-overview-head">
+            <div class="project-overview-copy">
+              <span class="project-overview-kicker">Project workspace</span>
+              <div class="project-overview-title-row">
+                <h1>{{ project.name }}</h1>
                 <a-tag :color="projectStatusColor(project.status)">{{ projectStatusLabel(project.status) }}</a-tag>
               </div>
-            </a-card>
-            <a-card size="small">
-              <a-space direction="vertical" style="width: 100%">
-                <span><strong>Address:</strong> {{ project.address }}</span>
-                <span><strong>Client:</strong> {{ project.clientName || 'Not set' }}</span>
-                <span><strong>Budget:</strong> {{ formatCurrency(project.budget ?? 0) }}</span>
-                <span><strong>Start:</strong> {{ formatOptionalDate(project.startDate) }}</span>
-                <span><strong>End:</strong> {{ formatOptionalDate(project.endDate) }}</span>
-                <span><strong>Description:</strong> {{ project.description || 'No description' }}</span>
-              </a-space>
-            </a-card>
-          </a-space>
+              <div class="project-overview-subtitle">#{{ project.code }} · {{ project.clientName || 'Unassigned client' }}</div>
+            </div>
+
+            <a-space class="detail-actions">
+              <a-button @click="openEditProjectModal" :disabled="!project">Edit Project</a-button>
+              <a-popconfirm title="Delete this project?" ok-text="Delete" cancel-text="Cancel" @confirm="deleteProject">
+                <a-button danger :disabled="!project">Delete</a-button>
+              </a-popconfirm>
+            </a-space>
+          </div>
+
+          <div class="project-stat-strip">
+            <div class="project-stat-chip">
+              <span>Tasks</span>
+              <strong>{{ taskTotal }}</strong>
+            </div>
+            <div class="project-stat-chip">
+              <span>Variations</span>
+              <strong>{{ variationTotal }}</strong>
+            </div>
+            <div class="project-stat-chip">
+              <span>Attachments</span>
+              <strong>{{ attachmentTotal }}</strong>
+            </div>
+            <div class="project-stat-chip">
+              <span>Budget</span>
+              <strong>{{ formatCurrency(project.budget ?? 0) }}</strong>
+            </div>
+          </div>
+
+          <div class="project-info-grid">
+            <article class="project-info-card project-info-card-wide">
+              <span class="project-info-label">Address</span>
+              <strong>{{ project.address }}</strong>
+              <p>{{ project.description || 'No description yet.' }}</p>
+            </article>
+
+            <article class="project-info-card">
+              <span class="project-info-label">Project ID</span>
+              <strong>{{ project.projectId }}</strong>
+            </article>
+
+            <article class="project-info-card">
+              <span class="project-info-label">Timeline</span>
+              <strong>{{ formatOptionalDate(project.startDate) }} - {{ formatOptionalDate(project.endDate) }}</strong>
+            </article>
+
+            <article class="project-info-card">
+              <span class="project-info-label">Created</span>
+              <strong>{{ formatDate(project.createdAt) }}</strong>
+            </article>
+          </div>
         </div>
 
         <a-empty v-else description="Project not found" />
       </a-card>
 
-      <a-card class="page-card" :bordered="false">
+      <a-card class="page-card project-workspace-card" :bordered="false">
         <a-tabs v-model:activeKey="activeTab">
           <a-tab-pane key="tasks" tab="Tasks">
             <a-space direction="vertical" size="middle" style="width: 100%">
-              <a-space wrap>
+              <a-space wrap class="workspace-toolbar">
                 <a-select v-model:value="taskQuery.status" style="width: 160px" @change="fetchTasks">
                   <a-select-option value="">All Statuses</a-select-option>
                   <a-select-option value="Todo">Todo</a-select-option>
@@ -71,6 +83,7 @@
               </a-space>
 
               <a-alert :message="t('userPoolNote')" type="info" show-icon />
+              <a-alert message="工人可在工人端上传现场回传、发送完工说明或反馈问题，回传文件会进入附件区。" type="info" show-icon />
 
               <div class="task-board">
                 <div v-for="column in taskBoardColumns" :key="column.status" class="task-board-column">
@@ -129,7 +142,7 @@
 
           <a-tab-pane key="variations" tab="Variations">
             <a-space direction="vertical" size="middle" style="width: 100%">
-              <a-space wrap>
+              <a-space wrap class="workspace-toolbar">
                 <a-select v-model:value="variationQuery.status" style="width: 180px" @change="fetchVariations">
                   <a-select-option value="">All Statuses</a-select-option>
                   <a-select-option value="Draft">Draft</a-select-option>
@@ -175,7 +188,7 @@
 
           <a-tab-pane key="attachments" tab="Attachments">
             <a-space direction="vertical" size="middle" style="width: 100%">
-              <a-space wrap>
+              <a-space wrap class="workspace-toolbar">
                 <a-button type="primary" @click="openCreateAttachmentModal">New Attachment Metadata</a-button>
                 <a-button @click="attachmentUploadOpen = true">Upload File</a-button>
                 <a-button @click="fetchAttachments">Refresh</a-button>
@@ -1017,24 +1030,145 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.project-overview-card {
+  overflow: hidden;
+}
+
+.project-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.project-overview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.project-overview-copy {
+  min-width: 0;
+}
+
+.project-overview-kicker {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.project-overview-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.project-overview-title-row h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+}
+
+.project-overview-subtitle {
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .detail-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
-.project-mobile {
-  display: none;
+.project-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.mobile-project-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+.project-stat-chip {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.project-stat-chip span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.project-stat-chip strong {
+  display: block;
+  margin-top: 10px;
+  font-size: clamp(22px, 2vw, 28px);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+
+.project-info-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.project-info-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.project-info-card-wide {
+  grid-column: span 1;
+}
+
+.project-info-label {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.project-info-card strong {
+  display: block;
+  margin-top: 10px;
+  line-height: 1.45;
+  font-size: 16px;
+}
+
+.project-info-card p {
+  margin: 10px 0 0;
+  color: #64748b;
+  line-height: 1.6;
 }
 
 .muted {
   color: #64748b;
+}
+
+.project-workspace-card :deep(.ant-tabs-nav) {
+  margin-bottom: 18px;
+}
+
+.workspace-toolbar {
+  align-items: center;
+  gap: 10px;
 }
 
 .task-board {
@@ -1056,12 +1190,13 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .project-desktop {
-    display: none;
+  .project-overview-head {
+    flex-direction: column;
   }
 
-  .project-mobile {
-    display: block;
+  .project-stat-strip,
+  .project-info-grid {
+    grid-template-columns: 1fr;
   }
 
   .task-board {

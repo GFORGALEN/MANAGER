@@ -2,41 +2,39 @@
   <div class="page-shell">
     <a-space direction="vertical" size="large" style="width: 100%">
       <a-card class="page-card" :bordered="false">
-        <template #title>My Tasks</template>
+        <template #title>我的任务</template>
         <template #extra>
-          <a-space>
+          <a-space wrap>
             <a-select v-model:value="query.status" style="width: 160px" @change="fetchTasks">
-              <a-select-option value="">All Statuses</a-select-option>
-              <a-select-option value="Todo">Todo</a-select-option>
-              <a-select-option value="Doing">Doing</a-select-option>
-              <a-select-option value="Done">Done</a-select-option>
+              <a-select-option value="">全部状态</a-select-option>
+              <a-select-option value="Todo">待开始</a-select-option>
+              <a-select-option value="Doing">进行中</a-select-option>
+              <a-select-option value="Done">已完成</a-select-option>
             </a-select>
-            <a-button @click="fetchTasks">Refresh</a-button>
+            <a-button @click="fetchTasks">刷新</a-button>
           </a-space>
         </template>
 
         <a-space v-if="tasks.length" direction="vertical" size="middle" style="width: 100%">
-          <a-card v-for="task in tasks" :key="task.taskItemId" size="small">
+          <a-card v-for="task in tasks" :key="task.taskItemId" size="small" class="worker-task-card">
             <a-space direction="vertical" style="width: 100%">
               <div class="task-topline">
                 <strong>{{ task.title }}</strong>
-                <a-tag :color="statusColorMap[task.status]">{{ task.status }}</a-tag>
+                <a-tag :color="statusColorMap[task.status]">{{ statusLabelMap[task.status] }}</a-tag>
               </div>
               <span class="muted">{{ task.projectName }}</span>
               <span v-if="task.description">{{ task.description }}</span>
-              <span v-if="task.assignedUsers?.length" class="muted">
-                Team:
-                {{ task.assignedUsers.map((user) => user.name).join(', ') }}
-              </span>
-              <span class="muted">Due: {{ formatDate(task.dueDate) }}</span>
-              <a-button type="primary" block @click="router.push({ name: 'worker-task-detail', params: { id: task.taskItemId } })">
-                Open Task
-              </a-button>
+              <span class="muted">截止：{{ formatDate(task.dueDate) }}</span>
+              <div class="task-actions">
+                <a-button v-if="task.status === 'Todo'" type="primary" @click="setTaskStatus(task.taskItemId, 'Doing')">开始</a-button>
+                <a-button v-if="task.status !== 'Done'" @click="setTaskStatus(task.taskItemId, 'Done')">完成</a-button>
+                <a-button @click="router.push({ name: 'worker-task-detail', params: { id: task.taskItemId } })">打开详情</a-button>
+              </div>
             </a-space>
           </a-card>
         </a-space>
 
-        <a-empty v-else description="No assigned tasks found." />
+        <a-empty v-else description="当前没有分配给你的任务。" />
 
         <div class="table-footer">
           <a-pagination
@@ -60,7 +58,7 @@ import { message } from 'ant-design-vue'
 
 import api from '@/services/api'
 import type { PagedResult } from '@/types/common'
-import type { TaskItem } from '@/types/task'
+import type { TaskItem, UpdateTaskStatusPayload } from '@/types/task'
 
 const router = useRouter()
 
@@ -80,6 +78,12 @@ const statusColorMap: Record<TaskItem['status'], string> = {
   Done: 'success',
 }
 
+const statusLabelMap: Record<TaskItem['status'], string> = {
+  Todo: '待开始',
+  Doing: '进行中',
+  Done: '已完成',
+}
+
 async function fetchTasks() {
   loading.value = true
   try {
@@ -94,9 +98,19 @@ async function fetchTasks() {
     tasks.value = data.items
     totalCount.value = data.totalCount
   } catch {
-    message.error('Failed to load assigned tasks.')
+    message.error('加载工人任务失败。')
   } finally {
     loading.value = false
+  }
+}
+
+async function setTaskStatus(taskId: string, status: UpdateTaskStatusPayload['status']) {
+  try {
+    await api.patch(`/my/tasks/${taskId}/status`, { status })
+    message.success(status === 'Done' ? '任务已完成。' : '任务已开始。')
+    await fetchTasks()
+  } catch {
+    message.error('更新任务状态失败。')
   }
 }
 
@@ -114,11 +128,21 @@ onMounted(fetchTasks)
 </script>
 
 <style scoped>
+.worker-task-card {
+  border-radius: 18px;
+}
+
 .task-topline {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .muted {

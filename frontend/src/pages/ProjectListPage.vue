@@ -11,25 +11,34 @@
             @search="fetchProjects"
           />
           <a-button type="primary" @click="openCreateModal">{{ t('newProject') }}</a-button>
+          <a-popconfirm
+            v-if="isAdmin"
+            :title="t('projectPurgeAllConfirm')"
+            :ok-text="t('delete')"
+            :cancel-text="t('cancel')"
+            @confirm="deleteAllProjects"
+          >
+            <a-button danger :loading="purgingAll">{{ t('projectPurgeAll') }}</a-button>
+          </a-popconfirm>
           <a-button @click="fetchProjects">{{ t('refresh') }}</a-button>
         </a-space>
       </template>
 
       <div class="project-overview">
         <div class="overview-tile">
-          <span>Total</span>
+          <span>{{ t('total') }}</span>
           <strong>{{ totalCount }}</strong>
         </div>
         <div class="overview-tile">
-          <span>Active</span>
+          <span>{{ t('active') }}</span>
           <strong>{{ projects.filter((project) => project.status === 'Active').length }}</strong>
         </div>
         <div class="overview-tile">
-          <span>Planning</span>
+          <span>{{ t('planning') }}</span>
           <strong>{{ projects.filter((project) => project.status === 'Planning').length }}</strong>
         </div>
         <div class="overview-tile">
-          <span>Completed</span>
+          <span>{{ t('completed') }}</span>
           <strong>{{ projects.filter((project) => project.status === 'Completed').length }}</strong>
         </div>
       </div>
@@ -48,7 +57,7 @@
             <a @click="goToProject(record.projectId)">{{ record.name }}</a>
           </template>
           <template v-else-if="column.key === 'status'">
-            <a-tag :color="projectStatusColor(record.status)">{{ record.status }}</a-tag>
+            <a-tag :color="projectStatusColor(record.status)">{{ projectStatusLabel(record.status) }}</a-tag>
           </template>
           <template v-else-if="column.key === 'createdAt'">
             {{ formatDate(record.createdAt) }}
@@ -57,12 +66,12 @@
             <a-space>
               <a-button size="small" @click="goToProject(record.projectId)">{{ t('open') }}</a-button>
               <a-popconfirm
-                title="Delete this project?"
-                ok-text="Delete"
-                cancel-text="Cancel"
+                :title="t('deleteProjectConfirm')"
+                :ok-text="t('delete')"
+                :cancel-text="t('cancel')"
                 @confirm="deleteProject(record.projectId)"
               >
-                <a-button size="small" danger>Delete</a-button>
+                <a-button size="small" danger>{{ t('delete') }}</a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -78,26 +87,26 @@
                   <strong>{{ project.name }}</strong>
                   <div class="muted">#{{ project.code }}</div>
                 </div>
-                <a-tag :color="projectStatusColor(project.status)">{{ project.status }}</a-tag>
+                <a-tag :color="projectStatusColor(project.status)">{{ projectStatusLabel(project.status) }}</a-tag>
               </div>
               <span>{{ project.address }}</span>
-              <span class="muted">Client: {{ project.clientName || 'Not set' }}</span>
-              <span class="muted">Created: {{ formatDate(project.createdAt) }}</span>
+              <span class="muted">{{ t('client') }}: {{ project.clientName || t('notSet') }}</span>
+              <span class="muted">{{ t('created') }}: {{ formatDate(project.createdAt) }}</span>
               <a-space wrap>
-                <a-button size="small" type="primary" @click="goToProject(project.projectId)">Open</a-button>
+                <a-button size="small" type="primary" @click="goToProject(project.projectId)">{{ t('open') }}</a-button>
                 <a-popconfirm
-                  title="Delete this project?"
-                  ok-text="Delete"
-                  cancel-text="Cancel"
+                  :title="t('deleteProjectConfirm')"
+                  :ok-text="t('delete')"
+                  :cancel-text="t('cancel')"
                   @confirm="deleteProject(project.projectId)"
                 >
-                  <a-button size="small" danger>Delete</a-button>
+                  <a-button size="small" danger>{{ t('delete') }}</a-button>
                 </a-popconfirm>
               </a-space>
             </a-space>
           </a-card>
         </a-space>
-        <a-empty v-else description="No projects found." />
+        <a-empty v-else :description="t('noProjectsFound')" />
       </div>
 
       <div class="table-footer">
@@ -115,7 +124,7 @@
     <a-modal
       v-model:open="createModalOpen"
       :title="t('createProject')"
-      ok-text="Create"
+      :ok-text="t('create')"
       :confirm-loading="savingProject"
       @ok="submitCreateProject"
     >
@@ -158,11 +167,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
+import type { AxiosError } from 'axios'
 
 import api from '@/services/api'
+import { getCurrentRole } from '@/services/auth'
 import { useI18n } from '@/services/i18n'
 import type { PagedResult } from '@/types/common'
 import type { CreateProjectPayload, ProjectListItem } from '@/types/project'
@@ -173,11 +184,13 @@ const { t, projectStatusLabel } = useI18n()
 const projects = ref<ProjectListItem[]>([])
 const loading = ref(false)
 const savingProject = ref(false)
+const purgingAll = ref(false)
 const createModalOpen = ref(false)
 const keyword = ref('')
 const pageNumber = ref(1)
 const pageSize = ref(10)
 const totalCount = ref(0)
+const isAdmin = computed(() => getCurrentRole() === 'Admin')
 
 const projectForm = reactive<CreateProjectPayload>({
   code: '',
@@ -193,39 +206,39 @@ const projectForm = reactive<CreateProjectPayload>({
 
 const columns = [
   {
-    title: 'Code',
+    title: t('projectCode'),
     dataIndex: 'code',
     key: 'code',
     width: 120,
   },
   {
-    title: 'Project Name',
+    title: t('projectName'),
     dataIndex: 'name',
     key: 'name',
   },
   {
-    title: 'Address',
+    title: t('address'),
     dataIndex: 'address',
     key: 'address',
   },
   {
-    title: 'Client',
+    title: t('client'),
     dataIndex: 'clientName',
     key: 'clientName',
   },
   {
-    title: 'Status',
+    title: t('status'),
     dataIndex: 'status',
     key: 'status',
     width: 120,
   },
   {
-    title: 'Created',
+    title: t('created'),
     dataIndex: 'createdAt',
     key: 'createdAt',
   },
   {
-    title: 'Actions',
+    title: t('actions'),
     key: 'actions',
     width: 180,
   },
@@ -246,7 +259,7 @@ async function fetchProjects() {
     projects.value = data.items
     totalCount.value = data.totalCount
   } catch {
-    message.error('Failed to load projects.')
+    message.error(t('projectLoadFailed'))
   } finally {
     loading.value = false
   }
@@ -267,7 +280,7 @@ function openCreateModal() {
 
 async function submitCreateProject() {
   if (!projectForm.code.trim() || !projectForm.name.trim() || !projectForm.address.trim()) {
-    message.warning('Project code, name, and address are required.')
+    message.warning(t('projectRequired'))
     return
   }
 
@@ -285,11 +298,11 @@ async function submitCreateProject() {
       startDate: projectForm.startDate ? new Date(projectForm.startDate).toISOString() : null,
       endDate: projectForm.endDate ? new Date(projectForm.endDate).toISOString() : null,
     })
-    message.success('Project created.')
+    message.success(t('projectCreated'))
     createModalOpen.value = false
     await fetchProjects()
   } catch {
-    message.error('Failed to create project.')
+    message.error(t('projectCreateFailed'))
   } finally {
     savingProject.value = false
   }
@@ -298,10 +311,25 @@ async function submitCreateProject() {
 async function deleteProject(projectId: string) {
   try {
     await api.delete(`/projects/${projectId}`)
-    message.success('Project deleted.')
+    message.success(t('projectDeleted'))
     await fetchProjects()
   } catch {
-    message.error('Failed to delete project.')
+    message.error(t('projectDeleteFailed'))
+  }
+}
+
+async function deleteAllProjects() {
+  purgingAll.value = true
+
+  try {
+    await api.delete('/projects/admin/purge')
+    message.success(t('projectPurgeAllSuccess'))
+    pageNumber.value = 1
+    await fetchProjects()
+  } catch (error) {
+    message.error(extractApiMessage(error, t('projectPurgeAllFailed')))
+  } finally {
+    purgingAll.value = false
   }
 }
 
@@ -329,6 +357,10 @@ function projectStatusColor(status: string) {
 }
 
 onMounted(fetchProjects)
+
+function extractApiMessage(error: unknown, fallback: string) {
+  return (error as AxiosError<{ message?: string }>)?.response?.data?.message ?? fallback
+}
 </script>
 
 <style scoped>

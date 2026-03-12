@@ -3,17 +3,20 @@ using ConstructionManagement.DTOs.Common;
 using ConstructionManagement.DTOs.Projects;
 using ConstructionManagement.Entities;
 using ConstructionManagement.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace ConstructionManagement.Services
 {
     public class ProjectService : IProjectService
     {
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _environment;
         private readonly ILogger<ProjectService> _logger;
 
-        public ProjectService(AppDbContext context, ILogger<ProjectService> logger)
+        public ProjectService(AppDbContext context, IWebHostEnvironment environment, ILogger<ProjectService> logger)
         {
             _context = context;
+            _environment = environment;
             _logger = logger;
         }
 
@@ -123,6 +126,38 @@ namespace ConstructionManagement.Services
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync(cancellationToken);
             return true;
+        }
+
+        public async Task<int> DeleteAllProjectsAsync(CancellationToken cancellationToken = default)
+        {
+            var projects = await _context.Projects
+                .Include(project => project.Attachments)
+                .ToListAsync(cancellationToken);
+
+            var deletedCount = projects.Count;
+            if (deletedCount == 0)
+            {
+                return 0;
+            }
+
+            foreach (var attachment in projects.SelectMany(project => project.Attachments))
+            {
+                if (string.IsNullOrWhiteSpace(attachment.FilePath))
+                {
+                    continue;
+                }
+
+                var fullPath = Path.Combine(_environment.ContentRootPath, attachment.FilePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                if (File.Exists(fullPath))
+                {
+                    File.Delete(fullPath);
+                }
+            }
+
+            _context.Projects.RemoveRange(projects);
+            await _context.SaveChangesAsync(cancellationToken);
+            _logger.LogWarning("All project data was deleted by an administrator. Deleted project count: {DeletedCount}", deletedCount);
+            return deletedCount;
         }
     }
 }

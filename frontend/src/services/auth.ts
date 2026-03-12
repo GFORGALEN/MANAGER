@@ -52,7 +52,7 @@ export function getCurrentUserLabel(): string {
 }
 
 export function getDefaultRouteForRole(role: string | null | undefined): string {
-  return role === 'Contractor' ? '/worker/dashboard' : '/projects'
+  return role === 'Contractor' ? '/worker/dashboard' : '/dashboard'
 }
 
 export function hasRole(roles?: string[]): boolean {

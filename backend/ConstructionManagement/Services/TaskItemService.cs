@@ -257,6 +257,93 @@ namespace ConstructionManagement.Services
             return task.ToDetailDto();
         }
 
+        public async Task<TaskAdminNotificationResultDto?> NotifyMyTaskAdminAsync(Guid userId, Guid id, NotifyTaskAdminDto request, CancellationToken cancellationToken = default)
+        {
+            var task = await _context.TaskItems
+                .Include(item => item.Project)
+                .Include(item => item.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
+                .FirstOrDefaultAsync(item => item.TaskItemId == id && item.TaskAssignments.Any(taskAssignment => taskAssignment.UserId == userId), cancellationToken);
+
+            if (task is null)
+            {
+                _logger.LogWarning("Assigned task {TaskId} was not found for admin notification by user {UserId}", id, userId);
+                return null;
+            }
+
+            var worker = await _context.Users.FirstOrDefaultAsync(user => user.UserId == userId, cancellationToken);
+            if (worker is null)
+            {
+                throw new ValidationException("Worker account was not found.");
+            }
+
+            var topic = NormalizeAdminNotificationTopic(request.Topic);
+            var messageBody = request.Message.Trim();
+            if (string.IsNullOrWhiteSpace(messageBody))
+            {
+                throw new ValidationException("Message is required.");
+            }
+
+            var recipients = await _context.Users
+                .Where(user =>
+                    user.IsActive &&
+                    (user.Role == "Admin" || user.Role == "PM") &&
+                    !string.IsNullOrWhiteSpace(user.Email))
+                .ToListAsync(cancellationToken);
+
+            if (recipients.Count == 0)
+            {
+                throw new ValidationException("No active admin or PM recipients are available.");
+            }
+
+            var subjectPrefix = topic == "Issue" ? "Worker Issue Report" : "Worker Completion Report";
+            var subject = $"{subjectPrefix}: {task.Title}";
+            var body =
+                $"Topic: {topic}{Environment.NewLine}" +
+                $"Worker: {worker.Name} <{worker.Email}>{Environment.NewLine}" +
+                $"Project: {task.Project?.Name ?? "Project"}{Environment.NewLine}" +
+                $"Task: {task.Title}{Environment.NewLine}" +
+                $"Status: {task.Status}{Environment.NewLine}" +
+                $"Start: {task.StartDate:yyyy-MM-dd HH:mm}{Environment.NewLine}" +
+                $"Due: {task.DueDate:yyyy-MM-dd HH:mm}{Environment.NewLine}{Environment.NewLine}" +
+                $"Message:{Environment.NewLine}{messageBody}";
+
+            var result = new TaskAdminNotificationResultDto
+            {
+                TaskItemId = task.TaskItemId,
+                Topic = topic
+            };
+
+            foreach (var recipient in recipients)
+            {
+                result.AttemptedCount++;
+
+                try
+                {
+                    await _emailService.SendAsync(recipient.Email.Trim(), subject, body, cancellationToken);
+                    result.SentCount++;
+                    result.SentRecipients.Add($"{recipient.Name} <{recipient.Email.Trim()}>");
+                }
+                catch (ValidationException ex)
+                {
+                    result.FailedRecipients.Add($"{recipient.Name} ({ex.Message})");
+                }
+                catch (SmtpException ex)
+                {
+                    result.FailedRecipients.Add($"{recipient.Name} ({ex.Message})");
+                }
+            }
+
+            _logger.LogInformation(
+                "Worker task admin notification completed for task {TaskId}. Topic: {Topic}. Attempted: {AttemptedCount}, Sent: {SentCount}",
+                task.TaskItemId,
+                topic,
+                result.AttemptedCount,
+                result.SentCount);
+
+            return result;
+        }
+
         public async Task<TaskSmsResultDto?> SendTaskSmsAsync(Guid taskId, string? customMessage, CancellationToken cancellationToken = default)
         {
             var task = await _context.TaskItems
@@ -515,6 +602,16 @@ namespace ConstructionManagement.Services
                 $"Status: {task.Status}{Environment.NewLine}" +
                 $"Start: {task.StartDate:yyyy-MM-dd HH:mm}{Environment.NewLine}" +
                 $"Due: {task.DueDate:yyyy-MM-dd HH:mm}";
+        }
+
+        private static string NormalizeAdminNotificationTopic(string topic)
+        {
+            return topic.Trim().ToLowerInvariant() switch
+            {
+                "issue" => "Issue",
+                "completion" => "Completion",
+                _ => throw new ValidationException("Topic must be either Issue or Completion.")
+            };
         }
     }
 }

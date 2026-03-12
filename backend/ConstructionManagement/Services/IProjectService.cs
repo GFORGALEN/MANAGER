@@ -14,5 +14,7 @@ namespace ConstructionManagement.Services
         Task<ProjectDetailDto?> UpdateProjectAsync(Guid id, UpdateProjectDto request, CancellationToken cancellationToken = default);
 
         Task<bool> DeleteProjectAsync(Guid id, CancellationToken cancellationToken = default);
+
+        Task<int> DeleteAllProjectsAsync(CancellationToken cancellationToken = default);
     }
 }

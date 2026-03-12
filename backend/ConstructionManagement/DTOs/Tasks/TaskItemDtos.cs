@@ -278,6 +278,44 @@ namespace ConstructionManagement.DTOs.Tasks
         public List<Guid>? AssignedUserIds { get; set; }
     }
 
+    /// <summary>
+    /// Request body used by a contractor to notify admin or PM about an issue or handoff.
+    /// </summary>
+    public class NotifyTaskAdminDto
+    {
+        /// <summary>
+        /// Communication topic. Allowed values: Issue, Completion.
+        /// </summary>
+        [Required]
+        [MinLength(1)]
+        public required string Topic { get; set; }
+
+        /// <summary>
+        /// Free-form message from the contractor.
+        /// </summary>
+        [Required]
+        [MinLength(3)]
+        public required string Message { get; set; }
+    }
+
+    /// <summary>
+    /// Summary result returned after notifying admin or PM from a task.
+    /// </summary>
+    public class TaskAdminNotificationResultDto
+    {
+        public Guid TaskItemId { get; set; }
+
+        public string Topic { get; set; } = string.Empty;
+
+        public int AttemptedCount { get; set; }
+
+        public int SentCount { get; set; }
+
+        public List<string> SentRecipients { get; set; } = [];
+
+        public List<string> FailedRecipients { get; set; } = [];
+    }
+
     public static class TaskItemDtoMappings
     {
         public static TaskItemListDto ToListDto(this TaskItem taskItem)

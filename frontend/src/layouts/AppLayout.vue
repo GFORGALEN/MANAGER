@@ -10,14 +10,16 @@
       class="app-sider"
     >
       <div class="brand-block">
-        <div class="brand-mark">CM</div>
+        <div class="brand-mark">
+          <span>CM</span>
+        </div>
         <div v-if="!collapsed" class="brand-copy">
           <strong>{{ t('brandTitle') }}</strong>
           <span>{{ t('brandSubtitle') }}</span>
         </div>
       </div>
       <div v-if="!collapsed" class="sider-context">
-        <div class="context-label">{{ roleLabel(currentUser?.role) || 'Workspace' }}</div>
+        <div class="context-label">{{ roleLabel(currentUser?.role) || t('workspace') }}</div>
         <strong>{{ pageTitle }}</strong>
         <span>{{ t('headerSubtitle') }}</span>
       </div>
@@ -27,6 +29,12 @@
         :selected-keys="selectedKeys"
         @click="handleMenuClick"
       >
+        <a-menu-item v-if="isManagerView" key="/dashboard">
+          <template #icon>
+            <AppstoreOutlined />
+          </template>
+          {{ t('menuManagerDashboard') }}
+        </a-menu-item>
         <a-menu-item v-if="isManagerView" key="/projects">
           <template #icon>
             <ProjectOutlined />
@@ -86,25 +94,31 @@
 
     <a-layout>
       <a-layout-header class="app-header">
-        <div>
-          <div class="header-title">{{ pageTitle }}</div>
+        <div class="header-intro">
+          <div class="header-title-row">
+            <div class="header-title">{{ pageTitle }}</div>
+            <div class="header-title-glow"></div>
+          </div>
           <div class="header-subtitle">{{ t('headerSubtitle') }}</div>
         </div>
 
         <a-space class="header-actions">
-          <LanguageSwitcher />
-          <a-tag class="role-pill" color="blue">{{ roleLabel(currentUser?.role) || 'Unknown' }}</a-tag>
-          <a-dropdown>
-            <a-button class="profile-button">
-              {{ currentUserLabel }}
-              <DownOutlined />
-            </a-button>
-            <template #overlay>
-              <a-menu>
-                <a-menu-item key="logout" @click="logout">{{ t('logout') }}</a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
+          <div class="header-command-bar">
+            <LanguageSwitcher />
+            <a-tag class="role-pill" color="blue">{{ roleLabel(currentUser?.role) || t('unknown') }}</a-tag>
+            <a-dropdown>
+              <a-button class="profile-button">
+                <span class="profile-avatar">{{ currentUserLabel.slice(0, 1).toUpperCase() }}</span>
+                <span>{{ currentUserLabel }}</span>
+                <DownOutlined />
+              </a-button>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item key="logout" @click="logout">{{ t('logout') }}</a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
         </a-space>
       </a-layout-header>
 
@@ -147,6 +161,10 @@ const { t, roleLabel } = useI18n()
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/projects')) {
     return ['/projects']
+  }
+
+  if (route.path.startsWith('/dashboard')) {
+    return ['/dashboard']
   }
 
   if (route.path.startsWith('/progress')) {
@@ -200,42 +218,54 @@ function logout() {
 .brand-block {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 22px 18px 16px;
+  gap: 14px;
+  padding: 18px 16px 14px;
 }
 
 .app-sider {
   border-inline-end: 1px solid rgba(226, 232, 240, 0.8);
-  background: linear-gradient(180deg, rgba(247, 242, 235, 0.98), rgba(236, 229, 218, 0.96)) !important;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.55);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(247, 242, 235, 0.94) 18%, rgba(236, 229, 218, 0.98)) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(255, 255, 255, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--role-color-start, #1677ff), var(--role-color-end, #0f4fb8));
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c2d12, #b91c1c);
   color: #fff;
-  font-weight: 700;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  box-shadow: 0 12px 28px rgba(124, 45, 18, 0.24);
+}
+
+.brand-mark span {
+  transform: translateY(-0.5px);
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  gap: 2px;
+  line-height: 1.05;
 }
 
 .brand-copy strong {
-  font-size: 18px;
-  letter-spacing: -0.02em;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  color: #111827;
 }
 
 .brand-copy span {
-  color: #64748b;
-  font-size: 12px;
+  color: #8e7f6d;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 
 .sider-context {
@@ -290,22 +320,49 @@ function logout() {
 }
 
 :deep(.ant-layout-sider-trigger) {
-  background: rgba(239, 231, 218, 0.96);
+  display: grid;
+  place-items: center;
+  width: 42px !important;
+  height: 42px !important;
+  right: -21px;
+  bottom: auto;
+  top: 92px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
   color: #4b3f31;
-  border-top: 1px solid rgba(191, 168, 138, 0.48);
+  border: 1px solid rgba(191, 168, 138, 0.3);
+  box-shadow:
+    0 10px 28px rgba(17, 24, 39, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  z-index: 3;
 }
 
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
   height: auto;
-  padding: 20px 24px;
-  background: rgba(247, 242, 235, 0.8);
-  backdrop-filter: blur(14px);
-  border-bottom: 2px solid var(--role-border, #e5e7eb);
-  box-shadow: inset 0 4px 0 0 var(--role-soft, transparent);
+  padding: 18px 26px 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.18)),
+    rgba(247, 242, 235, 0.62);
+  backdrop-filter: blur(24px) saturate(135%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(120, 109, 96, 0.08);
+}
+
+.header-intro {
+  min-width: 0;
+}
+
+.header-title-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .header-actions {
@@ -315,26 +372,69 @@ function logout() {
 }
 
 .header-title {
-  font-size: 22px;
+  position: relative;
+  z-index: 1;
+  font-size: 30px;
   font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.02em;
+  color: #111827;
+  letter-spacing: -0.04em;
+}
+
+.header-title-glow {
+  width: 110px;
+  height: 24px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--role-soft, rgba(59, 130, 246, 0.15)), transparent);
+  filter: blur(10px);
 }
 
 .header-subtitle {
-  color: #64748b;
+  margin-top: 6px;
+  color: #7c6f61;
+}
+
+.header-command-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  box-shadow:
+    0 12px 30px rgba(17, 24, 39, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .role-pill {
+  margin-inline: 2px;
   padding-inline: 10px;
   border-radius: 999px;
   font-weight: 700;
 }
 
 .profile-button {
-  min-width: 112px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 138px;
+  height: 42px;
   justify-content: space-between;
-  border-radius: 999px;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(17, 24, 39, 0.08);
+}
+
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--role-color-start, #1677ff), var(--role-color-end, #0f4fb8));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .content-area {
@@ -363,6 +463,10 @@ function logout() {
 }
 
 @media (max-width: 768px) {
+  :deep(.ant-layout-sider-trigger) {
+    top: 84px;
+  }
+
   .app-header {
     padding: 16px;
     align-items: flex-start;
@@ -371,7 +475,17 @@ function logout() {
 
   .header-actions {
     width: 100%;
+    justify-content: flex-start;
+  }
+
+  .header-title {
+    font-size: 24px;
+  }
+
+  .header-command-bar {
+    width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 }
 </style>

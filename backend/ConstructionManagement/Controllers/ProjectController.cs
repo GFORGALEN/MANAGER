@@ -104,6 +104,18 @@ namespace ConstructionManagement.Controllers
 
             return Ok();
         }
+
+        /// <summary>
+        /// Deletes all projects in the system. Related tasks, variations, attachments, and task assignments are deleted by cascade.
+        /// </summary>
+        /// <returns>The number of deleted projects.</returns>
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("admin/purge")]
+        public async Task<IActionResult> DeleteAllProjects(CancellationToken cancellationToken)
+        {
+            var deletedCount = await _projectService.DeleteAllProjectsAsync(cancellationToken);
+            return Ok(new { deletedProjects = deletedCount });
+        }
     }
 
 }

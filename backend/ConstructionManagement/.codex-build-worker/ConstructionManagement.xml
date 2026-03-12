@@ -1,0 +1,1038 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ConstructionManagement</name>
+    </assembly>
+    <members>
+        <member name="T:ConstructionManagement.Controllers.AttachmentsController">
+            <summary>
+            Provides endpoints for managing attachment metadata under projects.
+            </summary>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AttachmentsController.GetProjectAttachments(System.Guid,ConstructionManagement.DTOs.Common.AttachmentQueryDto,System.Threading.CancellationToken)">
+            <summary>
+            Gets all attachments that belong to a specific project.
+            </summary>
+            <param name="projectId">The project ID.</param>
+            <returns>All attachments under the specified project.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AttachmentsController.GetAttachment(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Gets a single attachment by its unique identifier.
+            </summary>
+            <param name="id">The attachment ID.</param>
+            <returns>The matching attachment if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AttachmentsController.CreateAttachment(System.Guid,ConstructionManagement.DTOs.Attachments.CreateAttachmentDto,System.Threading.CancellationToken)">
+            <summary>
+            Creates attachment metadata under a specific project.
+            </summary>
+            <param name="projectId">The project ID that the attachment belongs to.</param>
+            <param name="request">The attachment metadata to create.</param>
+            <returns>The newly created attachment metadata.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AttachmentsController.UpdateAttachment(System.Guid,ConstructionManagement.DTOs.Attachments.UpdateAttachmentDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates editable metadata of an existing attachment.
+            </summary>
+            <param name="id">The attachment ID.</param>
+            <param name="request">The updated attachment metadata.</param>
+            <returns>The updated attachment.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AttachmentsController.UploadAttachment(System.Guid,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
+            <summary>
+            Uploads a physical file and stores attachment metadata under a project.
+            </summary>
+            <param name="projectId">The project ID that the attachment belongs to.</param>
+            <param name="file">The uploaded file.</param>
+            <returns>The stored attachment metadata.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AttachmentsController.DeleteAttachment(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Deletes an attachment by its unique identifier.
+            </summary>
+            <param name="id">The attachment ID.</param>
+            <returns>An empty success response if the attachment was deleted.</returns>
+        </member>
+        <member name="T:ConstructionManagement.Controllers.AuthController">
+            <summary>
+            Provides authentication endpoints for API users.
+            </summary>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AuthController.Login(ConstructionManagement.DTOs.Auth.LoginRequestDto,System.Threading.CancellationToken)">
+            <summary>
+            Authenticates a user and returns a JWT bearer token.
+            </summary>
+            <param name="request">Login credentials.</param>
+            <returns>A JWT token and user summary.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AuthController.Register(ConstructionManagement.DTOs.Auth.RegisterRequestDto,System.Threading.CancellationToken)">
+            <summary>
+            Registers a new contractor account.
+            </summary>
+            <param name="request">Registration details for the new contractor.</param>
+            <returns>A success response when registration is completed.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.AuthController.Me(System.Threading.CancellationToken)">
+            <summary>
+            Gets the currently authenticated user profile.
+            </summary>
+            <returns>The current authenticated user profile.</returns>
+        </member>
+        <member name="T:ConstructionManagement.Controllers.MyTasksController">
+            <summary>
+            Provides contractor self-service task endpoints for the current authenticated user.
+            </summary>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.MyTasksController.GetMyTasks(ConstructionManagement.DTOs.Common.TaskItemQueryDto,System.Threading.CancellationToken)">
+            <summary>
+            Gets all tasks assigned to the current contractor.
+            </summary>
+            <param name="query">Optional task filters and paging.</param>
+            <returns>The current contractor's assigned tasks.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.MyTasksController.GetMyTask(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Gets a single assigned task that belongs to the current contractor.
+            </summary>
+            <param name="id">The task identifier.</param>
+            <returns>The assigned task detail if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.MyTasksController.UpdateMyTaskStatus(System.Guid,ConstructionManagement.DTOs.Tasks.UpdateTaskStatusDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates the status of a task assigned to the current contractor.
+            </summary>
+            <param name="id">The task identifier.</param>
+            <param name="request">The new task status.</param>
+            <returns>The updated task detail if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.MyTasksController.NotifyAdmin(System.Guid,ConstructionManagement.DTOs.Tasks.NotifyTaskAdminDto,System.Threading.CancellationToken)">
+            <summary>
+            Sends a worker issue or completion notification to active admins and project managers.
+            </summary>
+            <param name="id">The task identifier.</param>
+            <param name="request">The notification topic and message.</param>
+            <returns>A delivery summary if the task was found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.MyTasksController.UploadMyTaskAttachment(System.Guid,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
+            <summary>
+            Uploads a field attachment for a task assigned to the current contractor.
+            The file is stored under the parent project so managers can review it in the attachment workspace.
+            </summary>
+            <param name="id">The task identifier.</param>
+            <param name="file">The uploaded file.</param>
+            <returns>The stored attachment metadata if the task was found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.MyTasksController.GetMyTaskAttachmentContent(System.Guid,System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Streams an attachment that belongs to the current contractor's assigned task.
+            </summary>
+            <param name="id">The task identifier.</param>
+            <param name="attachmentId">The attachment identifier.</param>
+            <returns>The physical attachment file if found and authorized.</returns>
+        </member>
+        <member name="T:ConstructionManagement.Controllers.ProjectController">
+            <summary>
+            Provides CRUD endpoints for managing construction projects.
+            </summary>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.ProjectController.GetProjects(ConstructionManagement.DTOs.Common.ProjectQueryDto,System.Threading.CancellationToken)">
+            <summary>
+            Gets all projects in the system.
+            </summary>
+            <returns>A list of all projects.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.ProjectController.GetProject(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Gets a single project by its unique identifier.
+            </summary>
+            <param name="id">The project ID.</param>
+            <returns>The matching project if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.ProjectController.CreateProject(ConstructionManagement.DTOs.Projects.CreateProjectDto,System.Threading.CancellationToken)">
+            <summary>
+            Creates a new project.
+            </summary>
+            <param name="request">The project data to create.</param>
+            <returns>The newly created project.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.ProjectController.UpdateProject(System.Guid,ConstructionManagement.DTOs.Projects.UpdateProjectDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates editable fields of an existing project.
+            </summary>
+            <param name="id">The project ID.</param>
+            <param name="request">The updated project data.</param>
+            <returns>The updated project.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.ProjectController.DeleteProject(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Deletes a project by its unique identifier.
+            </summary>
+            <param name="id">The project ID.</param>
+            <returns>An empty success response if the project was deleted.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.ProjectController.DeleteAllProjects(System.Threading.CancellationToken)">
+            <summary>
+            Deletes all projects in the system. Related tasks, variations, attachments, and task assignments are deleted by cascade.
+            </summary>
+            <returns>The number of deleted projects.</returns>
+        </member>
+        <member name="T:ConstructionManagement.Controllers.TaskItemsController">
+            <summary>
+            Provides endpoints for managing task items under projects.
+            </summary>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.TaskItemsController.GetProjectTasks(System.Guid,ConstructionManagement.DTOs.Common.TaskItemQueryDto,System.Threading.CancellationToken)">
+            <summary>
+            Gets all tasks that belong to a specific project.
+            </summary>
+            <param name="projectId">The project ID.</param>
+            <returns>All tasks under the specified project.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.TaskItemsController.GetTask(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Gets a single task by its unique identifier.
+            </summary>
+            <param name="id">The task ID.</param>
+            <returns>The matching task if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.TaskItemsController.CreateTask(System.Guid,ConstructionManagement.DTOs.Tasks.CreateTaskItemDto,System.Threading.CancellationToken)">
+            <summary>
+            Creates a new task under a specific project.
+            </summary>
+            <param name="projectId">The project ID that the task belongs to.</param>
+            <param name="request">The task data to create.</param>
+            <returns>The newly created task.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.TaskItemsController.UpdateTask(System.Guid,ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates editable fields of an existing task.
+            </summary>
+            <param name="id">The task ID.</param>
+            <param name="request">The updated task data.</param>
+            <returns>The updated task.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.TaskItemsController.UpdateTaskStatus(System.Guid,ConstructionManagement.DTOs.Tasks.UpdateTaskStatusDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates only the status of a task.
+            </summary>
+            <param name="id">The task ID.</param>
+            <param name="request">The new status value. Allowed values: Todo, Doing, Done.</param>
+            <returns>The updated task.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.TaskItemsController.SendTaskSms(System.Guid,ConstructionManagement.DTOs.Notifications.SendTaskSmsDto,System.Threading.CancellationToken)">
+            <summary>
+            Sends an SMS update to all active users assigned to a task.
+            </summary>
+            <param name="id">The task ID.</param>
+            <param name="request">Optional custom SMS body. If omitted, the backend sends a default task summary.</param>
+            <returns>A delivery summary including sent and skipped recipients.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.TaskItemsController.SendTaskEmail(System.Guid,ConstructionManagement.DTOs.Notifications.SendTaskEmailDto,System.Threading.CancellationToken)">
+            <summary>
+            Sends an email update to all active users assigned to a task.
+            </summary>
+            <param name="id">The task ID.</param>
+            <param name="request">Optional custom email body. If omitted, the backend sends a default task summary.</param>
+            <returns>A delivery summary including sent and skipped recipients.</returns>
+        </member>
+        <member name="T:ConstructionManagement.Controllers.UsersController">
+            <summary>
+            Provides user management endpoints for administrative roles.
+            </summary>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.UsersController.GetUsers(ConstructionManagement.DTOs.Common.UserQueryDto,System.Threading.CancellationToken)">
+            <summary>
+            Gets users for management and assignment workflows.
+            </summary>
+            <param name="query">Optional filters and paging settings.</param>
+            <returns>A paged list of users.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.UsersController.GetUser(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Gets a single user by identifier.
+            </summary>
+            <param name="id">The user identifier.</param>
+            <returns>The matching user if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.UsersController.UpdateUser(System.Guid,ConstructionManagement.DTOs.Users.UpdateUserDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates editable user profile fields.
+            </summary>
+            <param name="id">The user identifier.</param>
+            <param name="request">The updated user fields.</param>
+            <returns>The updated user if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.UsersController.UpdateUserRole(System.Guid,ConstructionManagement.DTOs.Users.UpdateUserRoleDto,System.Threading.CancellationToken)">
+            <summary>
+            Changes a user's role.
+            </summary>
+            <param name="id">The user identifier.</param>
+            <param name="request">The new role value.</param>
+            <returns>The updated user if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.UsersController.UpdateUserActive(System.Guid,ConstructionManagement.DTOs.Users.UpdateUserActiveDto,System.Threading.CancellationToken)">
+            <summary>
+            Enables or disables a user account.
+            </summary>
+            <param name="id">The user identifier.</param>
+            <param name="request">The activation value to apply.</param>
+            <returns>The updated user if found.</returns>
+        </member>
+        <member name="T:ConstructionManagement.Controllers.VariationsController">
+            <summary>
+            Provides endpoints for managing variations under projects.
+            </summary>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.VariationsController.GetProjectVariations(System.Guid,ConstructionManagement.DTOs.Common.VariationQueryDto,System.Threading.CancellationToken)">
+            <summary>
+            Gets all variations that belong to a specific project.
+            </summary>
+            <param name="projectId">The project ID.</param>
+            <returns>All variations under the specified project.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.VariationsController.GetVariation(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Gets a single variation by its unique identifier.
+            </summary>
+            <param name="id">The variation ID.</param>
+            <returns>The matching variation if found.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.VariationsController.CreateVariation(System.Guid,ConstructionManagement.DTOs.Variations.CreateVariationDto,System.Threading.CancellationToken)">
+            <summary>
+            Creates a new variation under a specific project.
+            </summary>
+            <param name="projectId">The project ID that the variation belongs to.</param>
+            <param name="request">The variation data to create.</param>
+            <returns>The newly created variation.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.VariationsController.UpdateVariation(System.Guid,ConstructionManagement.DTOs.Variations.UpdateVariationDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates editable fields of an existing variation.
+            </summary>
+            <param name="id">The variation ID.</param>
+            <param name="request">The updated variation data.</param>
+            <returns>The updated variation.</returns>
+        </member>
+        <member name="M:ConstructionManagement.Controllers.VariationsController.UpdateVariationStatus(System.Guid,ConstructionManagement.DTOs.Variations.UpdateVariationStatusDto,System.Threading.CancellationToken)">
+            <summary>
+            Updates only the status of a variation.
+            </summary>
+            <param name="id">The variation ID.</param>
+            <param name="request">The new status value. Allowed values: Draft, Submitted, Approved, Rejected, NeedInfo.</param>
+            <returns>The updated variation.</returns>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Attachments.AttachmentListDto">
+            <summary>
+            Summary attachment data returned by list endpoints.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Attachments.AttachmentDetailDto">
+            <summary>
+            Detailed attachment data returned by single-item endpoints.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Attachments.CreateAttachmentDto">
+            <summary>
+            Request body used to create a new attachment metadata record.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Attachments.CreateAttachmentDto.FileName">
+            <summary>
+            Original file name shown to users.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Attachments.CreateAttachmentDto.FilePath">
+            <summary>
+            Stored file path or storage key.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Attachments.CreateAttachmentDto.ContentType">
+            <summary>
+            Optional MIME content type such as application/pdf or image/png.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Attachments.UpdateAttachmentDto">
+            <summary>
+            Request body used to update attachment metadata.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Notifications.SendTaskEmailDto">
+            <summary>
+            Request body used to send an email update for a task team.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.SendTaskEmailDto.Message">
+            <summary>
+            Optional custom email message. If omitted, the backend builds a default task summary.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Notifications.TaskEmailResultDto">
+            <summary>
+            Email sending summary returned after notifying assigned users.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Notifications.SendTaskSmsDto">
+            <summary>
+            Request body used to send an SMS update for a task team.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.SendTaskSmsDto.Message">
+            <summary>
+            Optional custom message. If omitted, the backend builds a default task summary.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Notifications.TaskSmsResultDto">
+            <summary>
+            SMS sending summary returned after notifying assigned users.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.TaskSmsResultDto.TaskItemId">
+            <summary>
+            Related task identifier.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.TaskSmsResultDto.TaskTitle">
+            <summary>
+            Related task title.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.TaskSmsResultDto.AttemptedCount">
+            <summary>
+            Number of recipients attempted.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.TaskSmsResultDto.SentCount">
+            <summary>
+            Number of successfully accepted messages.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.TaskSmsResultDto.SkippedRecipients">
+            <summary>
+            Users skipped because phone data was missing or invalid.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Notifications.TaskSmsResultDto.FailedRecipients">
+            <summary>
+            Users that failed at provider level.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Projects.ProjectListDto">
+            <summary>
+            Summary project data returned by list endpoints.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectListDto.ProjectId">
+            <summary>
+            Unique project identifier.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectListDto.Code">
+            <summary>
+            Internal project code.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectListDto.Name">
+            <summary>
+            Project name shown to users.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectListDto.Address">
+            <summary>
+            Project site address or location.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectListDto.ClientName">
+            <summary>
+            Customer or owner name.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectListDto.Status">
+            <summary>
+            Project status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectListDto.CreatedAt">
+            <summary>
+            UTC timestamp when the project was created.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Projects.ProjectDetailDto">
+            <summary>
+            Detailed project data returned by single-item endpoints.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.ProjectId">
+            <summary>
+            Unique project identifier.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.Code">
+            <summary>
+            Internal project code.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.Name">
+            <summary>
+            Project name shown to users.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.Address">
+            <summary>
+            Project site address or location.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.Description">
+            <summary>
+            Longer project summary.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.ClientName">
+            <summary>
+            Customer or owner name.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.Status">
+            <summary>
+            Project lifecycle status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.Budget">
+            <summary>
+            Approved budget value when available.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.StartDate">
+            <summary>
+            Planned start date.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.EndDate">
+            <summary>
+            Planned finish date.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.ProjectDetailDto.CreatedAt">
+            <summary>
+            UTC timestamp when the project was created.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Projects.CreateProjectDto">
+            <summary>
+            Request body used to create a new project.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.Code">
+            <summary>
+            Internal project code.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.Name">
+            <summary>
+            Project name shown in the system.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.Address">
+            <summary>
+            Project site address or location.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.Description">
+            <summary>
+            Longer project summary.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.ClientName">
+            <summary>
+            Customer or owner name.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.Status">
+            <summary>
+            Current project status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.Budget">
+            <summary>
+            Approved budget value when available.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.StartDate">
+            <summary>
+            Planned start date.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.CreateProjectDto.EndDate">
+            <summary>
+            Planned finish date.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Projects.UpdateProjectDto">
+            <summary>
+            Request body used to update an existing project.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.Code">
+            <summary>
+            Updated internal project code.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.Name">
+            <summary>
+            Updated project name.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.Address">
+            <summary>
+            Updated project address.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.Description">
+            <summary>
+            Updated project summary.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.ClientName">
+            <summary>
+            Updated customer or owner name.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.Status">
+            <summary>
+            Updated project status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.Budget">
+            <summary>
+            Updated approved budget value.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.StartDate">
+            <summary>
+            Updated planned start date.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Projects.UpdateProjectDto.EndDate">
+            <summary>
+            Updated planned finish date.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.TaskItemListDto">
+            <summary>
+            Summary task data returned by list endpoints.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.TaskItemId">
+            <summary>
+            Unique task identifier.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.ProjectId">
+            <summary>
+            Parent project identifier.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.Title">
+            <summary>
+            Short title of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.ProjectName">
+            <summary>
+            Related project name.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.Description">
+            <summary>
+            Optional detailed description of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.Status">
+            <summary>
+            Current task status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.AssignedUserId">
+            <summary>
+            Assigned worker identifier when the task is assigned.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.AssignedUserName">
+            <summary>
+            Assigned worker display name when available.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.AssignedUserIds">
+            <summary>
+            All assigned user IDs.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.AssignedUsers">
+            <summary>
+            All assigned users for this task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.StartDate">
+            <summary>
+            Planned start date for the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.DueDate">
+            <summary>
+            Planned due date for the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemListDto.CreatedAt">
+            <summary>
+            UTC timestamp when the task was created.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto">
+            <summary>
+            Detailed task data returned by single-item endpoints.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.TaskItemId">
+            <summary>
+            Unique task identifier.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.ProjectId">
+            <summary>
+            Parent project identifier.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.Title">
+            <summary>
+            Short title of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.Description">
+            <summary>
+            Optional detailed description of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.Status">
+            <summary>
+            Current task status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.ProjectName">
+            <summary>
+            Related project name.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.ProjectAddress">
+            <summary>
+            Related project address.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.AssignedUserId">
+            <summary>
+            Assigned worker identifier when the task is assigned.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.AssignedUserName">
+            <summary>
+            Assigned worker display name when available.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.AssignedUserIds">
+            <summary>
+            All assigned user IDs.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.AssignedUsers">
+            <summary>
+            All assigned users for this task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.StartDate">
+            <summary>
+            Planned start date for the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.DueDate">
+            <summary>
+            Planned due date for the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.CreatedAt">
+            <summary>
+            UTC timestamp when the task was created.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.TaskItemDetailDto.Attachments">
+            <summary>
+            Project attachments available to the worker for reference.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.TaskAttachmentDto">
+            <summary>
+            Attachment summary nested under task detail responses.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.TaskAssigneeDto">
+            <summary>
+            Minimal assignee summary nested under task responses.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.CreateTaskItemDto">
+            <summary>
+            Request body used to create a new task item.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.CreateTaskItemDto.Title">
+            <summary>
+            Short title of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.CreateTaskItemDto.Description">
+            <summary>
+            Optional detailed description of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.CreateTaskItemDto.StartDate">
+            <summary>
+            Planned start date for the task. If omitted, the backend uses the current UTC time.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.CreateTaskItemDto.DueDate">
+            <summary>
+            Planned due date for the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.CreateTaskItemDto.AssignedUserId">
+            <summary>
+            Optional contractor user ID assigned to the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.CreateTaskItemDto.AssignedUserIds">
+            <summary>
+            Optional list of assigned user IDs for collaborative work.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.UpdateTaskStatusDto">
+            <summary>
+            Request body used to update task status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.UpdateTaskStatusDto.Status">
+            <summary>
+            New task status. Allowed values: Todo, Doing, Done.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto">
+            <summary>
+            Request body used to update an existing task item.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto.Title">
+            <summary>
+            Updated short title of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto.Description">
+            <summary>
+            Updated detailed description of the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto.StartDate">
+            <summary>
+            Updated planned start date for the task. If omitted, the backend keeps the existing start date.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto.DueDate">
+            <summary>
+            Updated due date for the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto.AssignedUserId">
+            <summary>
+            Optional contractor user ID assigned to the task.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.UpdateTaskItemDto.AssignedUserIds">
+            <summary>
+            Optional list of assigned user IDs for collaborative work.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.NotifyTaskAdminDto">
+            <summary>
+            Request body used by a contractor to notify admin or PM about an issue or handoff.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.NotifyTaskAdminDto.Topic">
+            <summary>
+            Communication topic. Allowed values: Issue, Completion.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Tasks.NotifyTaskAdminDto.Message">
+            <summary>
+            Free-form message from the contractor.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Tasks.TaskAdminNotificationResultDto">
+            <summary>
+            Summary result returned after notifying admin or PM from a task.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Users.UserListDto">
+            <summary>
+            Summary user data returned by user list endpoints.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Users.UserDetailDto">
+            <summary>
+            Detailed user data returned by user detail endpoints.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Users.UpdateUserDto">
+            <summary>
+            Request body used to update editable user profile fields.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Users.UpdateUserRoleDto">
+            <summary>
+            Request body used to change a user's role.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Users.UpdateUserActiveDto">
+            <summary>
+            Request body used to enable or disable a user.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Variations.VariationListDto">
+            <summary>
+            Summary variation data returned by list endpoints.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Variations.VariationDetailDto">
+            <summary>
+            Detailed variation data returned by single-item endpoints.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Variations.CreateVariationDto">
+            <summary>
+            Request body used to create a new variation.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Variations.CreateVariationDto.Title">
+            <summary>
+            Short title of the variation.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Variations.CreateVariationDto.Description">
+            <summary>
+            Optional detailed description of the variation.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Variations.CreateVariationDto.Amount">
+            <summary>
+            Proposed variation amount.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Variations.UpdateVariationStatusDto">
+            <summary>
+            Request body used to update variation status.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Variations.UpdateVariationStatusDto.Status">
+            <summary>
+            New variation status. Allowed values: Draft, Submitted, Approved, Rejected, NeedInfo.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.DTOs.Variations.UpdateVariationDto">
+            <summary>
+            Request body used to update an existing variation.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Variations.UpdateVariationDto.Title">
+            <summary>
+            Updated short title of the variation.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Variations.UpdateVariationDto.Description">
+            <summary>
+            Updated detailed description of the variation.
+            </summary>
+        </member>
+        <member name="P:ConstructionManagement.DTOs.Variations.UpdateVariationDto.Amount">
+            <summary>
+            Updated proposed variation amount.
+            </summary>
+        </member>
+        <member name="T:ConstructionManagement.Migrations.InitDatabase">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.InitDatabase.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.InitDatabase.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.InitDatabase.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:ConstructionManagement.Migrations.RebuildProjectRelatedAndPhase2">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.RebuildProjectRelatedAndPhase2.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.RebuildProjectRelatedAndPhase2.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.RebuildProjectRelatedAndPhase2.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:ConstructionManagement.Migrations.PhaseAUserRegistrationAndTaskAssignment">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.PhaseAUserRegistrationAndTaskAssignment.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.PhaseAUserRegistrationAndTaskAssignment.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.PhaseAUserRegistrationAndTaskAssignment.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:ConstructionManagement.Migrations.AddProjectPlanningFields">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddProjectPlanningFields.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddProjectPlanningFields.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddProjectPlanningFields.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:ConstructionManagement.Migrations.AddTaskStartDate">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddTaskStartDate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddTaskStartDate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddTaskStartDate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:ConstructionManagement.Migrations.AddTaskAssignments">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddTaskAssignments.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddTaskAssignments.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ConstructionManagement.Migrations.AddTaskAssignments.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

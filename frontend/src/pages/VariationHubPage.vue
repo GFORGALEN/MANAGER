@@ -1,12 +1,15 @@
 <template>
   <ProjectModuleNavigator
-    title="Variation Center"
-    description="Choose a project and jump directly into its variation workspace."
+    :title="t('hubVariationTitle')"
+    :description="t('hubVariationDescription')"
     tab-key="variations"
-    cta-label="Variations"
+    :cta-label="t('hubVariationsLabel')"
   />
 </template>
 
 <script setup lang="ts">
 import ProjectModuleNavigator from '@/components/ProjectModuleNavigator.vue'
+import { useI18n } from '@/services/i18n'
+
+const { t } = useI18n()
 </script>
