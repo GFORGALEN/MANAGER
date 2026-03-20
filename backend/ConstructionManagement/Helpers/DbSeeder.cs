@@ -1,5 +1,7 @@
 using ConstructionManagement.Entities;
+using ConstructionManagement.Configurations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace ConstructionManagement.Helpers
 {
@@ -10,6 +12,9 @@ namespace ConstructionManagement.Helpers
             using var scope = serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
             var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+            var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+            var bootstrapAdminOptions = scope.ServiceProvider.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
+            var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
 
             await dbContext.Database.MigrateAsync(cancellationToken);
 
@@ -41,45 +46,72 @@ namespace ConstructionManagement.Helpers
                 return;
             }
 
-            dbContext.Users.AddRange(
-                new User
-                {
-                    UserId = Guid.NewGuid(),
-                    Name = "Admin",
-                    Username = "admin",
-                    Email = "admin@construction.local",
-                    PhoneNumber = null,
-                    PasswordHash = passwordHasher.Hash("Admin123!"),
-                    Role = "Admin",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                },
-                new User
-                {
-                    UserId = Guid.NewGuid(),
-                    Name = "Project Manager",
-                    Username = "pm",
-                    Email = "pm@construction.local",
-                    PhoneNumber = null,
-                    PasswordHash = passwordHasher.Hash("Pm123!"),
-                    Role = "PM",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                },
-                new User
-                {
-                    UserId = Guid.NewGuid(),
-                    Name = "Contractor",
-                    Username = "contractor",
-                    Email = "contractor@construction.local",
-                    PhoneNumber = null,
-                    PasswordHash = passwordHasher.Hash("Contractor123!"),
-                    Role = "Contractor",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                });
+            if (environment.IsDevelopment())
+            {
+                dbContext.Users.AddRange(
+                    new User
+                    {
+                        UserId = Guid.NewGuid(),
+                        Name = "Admin",
+                        Username = "admin",
+                        Email = "admin@construction.local",
+                        PhoneNumber = null,
+                        PasswordHash = passwordHasher.Hash("Admin123!"),
+                        Role = "Admin",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new User
+                    {
+                        UserId = Guid.NewGuid(),
+                        Name = "Project Manager",
+                        Username = "pm",
+                        Email = "pm@construction.local",
+                        PhoneNumber = null,
+                        PasswordHash = passwordHasher.Hash("Pm123!"),
+                        Role = "PM",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new User
+                    {
+                        UserId = Guid.NewGuid(),
+                        Name = "Contractor",
+                        Username = "contractor",
+                        Email = "contractor@construction.local",
+                        PhoneNumber = null,
+                        PasswordHash = passwordHasher.Hash("Contractor123!"),
+                        Role = "Contractor",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Development seed users created for an empty database.");
+                return;
+            }
+
+            if (!bootstrapAdminOptions.Enabled)
+            {
+                logger.LogWarning("Database is empty and BootstrapAdmin is disabled. No default production users were created.");
+                return;
+            }
+
+            dbContext.Users.Add(new User
+            {
+                UserId = Guid.NewGuid(),
+                Name = bootstrapAdminOptions.Name.Trim(),
+                Username = bootstrapAdminOptions.Username.Trim(),
+                Email = bootstrapAdminOptions.Email.Trim(),
+                PhoneNumber = null,
+                PasswordHash = passwordHasher.Hash(bootstrapAdminOptions.Password),
+                Role = "Admin",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Bootstrap admin {Username} created for an empty non-development database.", bootstrapAdminOptions.Username);
         }
     }
 }

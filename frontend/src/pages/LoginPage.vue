@@ -77,7 +77,6 @@
           <a-form-item :label="copy.userLabel" name="username">
             <a-input
               v-model:value="formState.username"
-              :placeholder="selectedModule.demoUsername"
               size="large"
               @press-enter="handleSubmit"
             />
@@ -86,7 +85,6 @@
           <a-form-item :label="copy.passwordLabel" name="password">
             <a-input-password
               v-model:value="formState.password"
-              :placeholder="selectedModule.demoPassword"
               size="large"
               @press-enter="handleSubmit"
             />
@@ -110,17 +108,6 @@
           </a-button>
         </div>
 
-        <div class="demo-panel">
-          <span><strong>{{ copy.demoTitle }}</strong></span>
-          <div
-            v-for="demo in selectedModule.demoAccounts"
-            :key="demo.label"
-            class="demo-item"
-          >
-            <span>{{ demo.label }}</span>
-            <code>{{ demo.username }} / {{ demo.password }}</code>
-          </div>
-        </div>
       </a-card>
     </div>
   </div>
@@ -144,8 +131,8 @@ const { locale } = useI18n()
 
 const activeModule = ref<LoginModuleKey>('manager')
 const formState = reactive<LoginRequest>({
-  username: 'admin',
-  password: 'Admin123!',
+  username: '',
+  password: '',
 })
 
 const submitting = ref(false)
@@ -236,16 +223,7 @@ const selectedModule = computed(() => {
           formTitle: '施工人员登录',
           formCopy: '只给现场施工人员使用，登录后直接进入我的任务。',
           submitLabel: '进入施工页面',
-          demoUsername: 'contractor',
-          demoPassword: 'Contractor123!',
           allowedRoles: ['Contractor'],
-          demoAccounts: [
-            {
-              label: 'Worker',
-              username: 'contractor',
-              password: 'Contractor123!',
-            },
-          ],
         }
       : {
           title: 'Worker Sign In',
@@ -254,16 +232,7 @@ const selectedModule = computed(() => {
           formTitle: 'Worker Sign In',
           formCopy: 'For field staff only. Successful login opens My Tasks directly.',
           submitLabel: 'Enter Worker Workspace',
-          demoUsername: 'contractor',
-          demoPassword: 'Contractor123!',
           allowedRoles: ['Contractor'],
-          demoAccounts: [
-            {
-              label: 'Worker',
-              username: 'contractor',
-              password: 'Contractor123!',
-            },
-          ],
         }
   }
 
@@ -275,21 +244,7 @@ const selectedModule = computed(() => {
         formTitle: '管理端登录',
         formCopy: '适合管理员和项目经理使用，登录后进入管理工作台。',
         submitLabel: '进入管理页面',
-        demoUsername: 'admin',
-        demoPassword: 'Admin123!',
         allowedRoles: ['Admin', 'PM'],
-        demoAccounts: [
-          {
-            label: 'Admin',
-            username: 'admin',
-            password: 'Admin123!',
-          },
-          {
-            label: 'PM',
-            username: 'pm',
-            password: 'Pm123!',
-          },
-        ],
       }
     : {
         title: 'Manager Sign In',
@@ -298,21 +253,7 @@ const selectedModule = computed(() => {
         formTitle: 'Manager Sign In',
         formCopy: 'Use this entry for Admin and PM accounts.',
         submitLabel: 'Enter Manager Workspace',
-        demoUsername: 'admin',
-        demoPassword: 'Admin123!',
         allowedRoles: ['Admin', 'PM'],
-        demoAccounts: [
-          {
-            label: 'Admin',
-            username: 'admin',
-            password: 'Admin123!',
-          },
-          {
-            label: 'PM',
-            username: 'pm',
-            password: 'Pm123!',
-          },
-        ],
       }
 })
 
@@ -323,15 +264,8 @@ const showcaseStyle = computed(() => ({
 function selectModule(module: LoginModuleKey) {
   activeModule.value = module
   errorMessage.value = ''
-
-  if (module === 'worker') {
-    formState.username = 'contractor'
-    formState.password = 'Contractor123!'
-    return
-  }
-
-  formState.username = 'admin'
-  formState.password = 'Admin123!'
+  formState.username = ''
+  formState.password = ''
 }
 
 async function handleSubmit() {

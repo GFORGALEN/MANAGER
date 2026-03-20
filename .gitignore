@@ -17,6 +17,7 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+docs/INITIAL_ACCOUNTS.local.md
 
 # OS / editor
 .DS_Store
