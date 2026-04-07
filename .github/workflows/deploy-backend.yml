@@ -40,6 +40,7 @@ jobs:
           source: "publish/backend/*"
           target: "/opt/construction-management"
           overwrite: true
+          strip_components: 2
 
       - name: Restart backend service
         uses: appleboy/ssh-action@v1.2.0
