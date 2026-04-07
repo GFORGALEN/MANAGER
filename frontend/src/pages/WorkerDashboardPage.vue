@@ -93,7 +93,7 @@ const todayCount = computed(() => {
   return tasks.value.filter((task) => new Date(task.dueDate).toDateString() === today && task.status !== 'Done').length
 })
 
-const doingCount = computed(() => tasks.value.filter((task) => task.status === 'Doing').length)
+const doingCount = computed(() => tasks.value.filter((task) => task.status === 'InProgress').length)
 const overdueCount = computed(() => tasks.value.filter((task) => task.status !== 'Done' && new Date(task.dueDate).getTime() < Date.now()).length)
 
 const priorityTasks = computed(() =>
@@ -104,14 +104,16 @@ const priorityTasks = computed(() =>
 )
 
 const statusColorMap: Record<TaskItem['status'], string> = {
-  Todo: 'default',
-  Doing: 'processing',
+  Draft: 'default',
+  InProgress: 'processing',
+  Blocked: 'warning',
   Done: 'success',
 }
 
 const statusLabelMap: Record<TaskItem['status'], string> = {
-  Todo: '待开始',
-  Doing: '进行中',
+  Draft: '草稿',
+  InProgress: '进行中',
+  Blocked: '阻塞',
   Done: '已完成',
 }
 

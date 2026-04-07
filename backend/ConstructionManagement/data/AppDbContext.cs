@@ -29,6 +29,10 @@ namespace ConstructionManagement.Data
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<TaskItem>()
+                .Property(taskItem => taskItem.EstimatedHours)
+                .HasPrecision(6, 1);
+
+            modelBuilder.Entity<TaskItem>()
                 .HasOne(taskItem => taskItem.Project)
                 .WithMany(project => project.TaskItems)
                 .HasForeignKey(taskItem => taskItem.ProjectId)

@@ -5,10 +5,11 @@
         <template #title>我的任务</template>
         <template #extra>
           <a-space wrap>
-            <a-select v-model:value="query.status" style="width: 160px" @change="fetchTasks">
+            <a-select v-model:value="query.status" style="width: 180px" @change="fetchTasks">
               <a-select-option value="">全部状态</a-select-option>
-              <a-select-option value="Todo">待开始</a-select-option>
-              <a-select-option value="Doing">进行中</a-select-option>
+              <a-select-option value="Draft">草稿</a-select-option>
+              <a-select-option value="InProgress">进行中</a-select-option>
+              <a-select-option value="Blocked">阻塞</a-select-option>
               <a-select-option value="Done">已完成</a-select-option>
             </a-select>
             <a-button @click="fetchTasks">刷新</a-button>
@@ -23,10 +24,16 @@
                 <a-tag :color="statusColorMap[task.status]">{{ statusLabelMap[task.status] }}</a-tag>
               </div>
               <span class="muted">{{ task.projectName }}</span>
+              <a-space wrap size="small">
+                <a-tag>{{ task.priority }}</a-tag>
+                <a-tag v-if="task.category">{{ task.category }}</a-tag>
+                <a-tag v-if="task.estimatedHours" color="gold">{{ task.estimatedHours }}h</a-tag>
+              </a-space>
               <span v-if="task.description">{{ task.description }}</span>
               <span class="muted">截止：{{ formatDate(task.dueDate) }}</span>
               <div class="task-actions">
-                <a-button v-if="task.status === 'Todo'" type="primary" @click="setTaskStatus(task.taskItemId, 'Doing')">开始</a-button>
+                <a-button v-if="task.status === 'Draft'" type="primary" @click="setTaskStatus(task.taskItemId, 'InProgress')">开始</a-button>
+                <a-button v-if="task.status === 'InProgress'" @click="setTaskStatus(task.taskItemId, 'Blocked')">标记阻塞</a-button>
                 <a-button v-if="task.status !== 'Done'" @click="setTaskStatus(task.taskItemId, 'Done')">完成</a-button>
                 <a-button @click="router.push({ name: 'worker-task-detail', params: { id: task.taskItemId } })">打开详情</a-button>
               </div>
@@ -73,14 +80,16 @@ const query = reactive({
 })
 
 const statusColorMap: Record<TaskItem['status'], string> = {
-  Todo: 'default',
-  Doing: 'processing',
+  Draft: 'default',
+  InProgress: 'processing',
+  Blocked: 'warning',
   Done: 'success',
 }
 
 const statusLabelMap: Record<TaskItem['status'], string> = {
-  Todo: '待开始',
-  Doing: '进行中',
+  Draft: '草稿',
+  InProgress: '进行中',
+  Blocked: '阻塞',
   Done: '已完成',
 }
 
@@ -107,7 +116,13 @@ async function fetchTasks() {
 async function setTaskStatus(taskId: string, status: UpdateTaskStatusPayload['status']) {
   try {
     await api.patch(`/my/tasks/${taskId}/status`, { status })
-    message.success(status === 'Done' ? '任务已完成。' : '任务已开始。')
+    message.success(
+      status === 'Done'
+        ? '任务已完成。'
+        : status === 'Blocked'
+          ? '任务已标记为阻塞。'
+          : '任务已开始。',
+    )
     await fetchTasks()
   } catch {
     message.error('更新任务状态失败。')

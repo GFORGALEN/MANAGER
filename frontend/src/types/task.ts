@@ -20,7 +20,10 @@ export interface TaskItem {
   title: string
   projectName: string
   description?: string | null
-  status: 'Todo' | 'Doing' | 'Done'
+  status: 'Draft' | 'InProgress' | 'Blocked' | 'Done'
+  priority: 'Low' | 'Medium' | 'High' | 'Critical' | string
+  category?: string | null
+  estimatedHours?: number | null
   assignedUserId?: string | null
   assignedUserName?: string | null
   assignedUserIds: string[]
@@ -33,6 +36,9 @@ export interface TaskItem {
 export interface CreateTaskPayload {
   title: string
   description?: string | null
+  priority: 'Low' | 'Medium' | 'High' | 'Critical' | string
+  category?: string | null
+  estimatedHours?: number | null
   startDate?: string | null
   dueDate: string
   assignedUserId?: string | null
@@ -42,6 +48,9 @@ export interface CreateTaskPayload {
 export interface UpdateTaskPayload {
   title: string
   description?: string | null
+  priority: 'Low' | 'Medium' | 'High' | 'Critical' | string
+  category?: string | null
+  estimatedHours?: number | null
   startDate?: string | null
   dueDate: string
   assignedUserId?: string | null
@@ -49,7 +58,20 @@ export interface UpdateTaskPayload {
 }
 
 export interface UpdateTaskStatusPayload {
-  status: 'Todo' | 'Doing' | 'Done'
+  status: 'Draft' | 'InProgress' | 'Blocked' | 'Done'
+}
+
+export interface AiTaskDraftRequest {
+  siteDescription: string
+}
+
+export interface AiTaskDraftSuggestion {
+  title: string
+  summary: string
+  priority: 'Low' | 'Medium' | 'High' | 'Critical' | string
+  category: string
+  estimatedHours: number
+  executionSteps: string[]
 }
 
 export interface TaskSmsResult {

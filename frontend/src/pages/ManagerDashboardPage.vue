@@ -272,15 +272,17 @@ function isPendingVariation(status: Variation['status']) {
 }
 
 function taskStatusLabel(status: TaskItem['status']) {
-  if (status === 'Todo') return t('todo')
-  if (status === 'Doing') return t('doing')
+  if (status === 'Draft') return t('todo')
+  if (status === 'InProgress') return t('doing')
+  if (status === 'Blocked') return t('blocked')
   return t('done')
 }
 
 function taskStatusColor(status: TaskItem['status']) {
   return ({
-    Todo: 'default',
-    Doing: 'processing',
+    Draft: 'default',
+    InProgress: 'processing',
+    Blocked: 'warning',
     Done: 'success',
   } as Record<TaskItem['status'], string>)[status]
 }

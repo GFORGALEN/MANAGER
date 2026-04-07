@@ -14,10 +14,12 @@ namespace ConstructionManagement.Controllers
     public class TaskItemsController : ControllerBase
     {
         private readonly ITaskItemService _taskItemService;
+        private readonly ITaskDraftAiService _taskDraftAiService;
 
-        public TaskItemsController(ITaskItemService taskItemService)
+        public TaskItemsController(ITaskItemService taskItemService, ITaskDraftAiService taskDraftAiService)
         {
             _taskItemService = taskItemService;
+            _taskDraftAiService = taskDraftAiService;
         }
 
         /// <summary>
@@ -81,6 +83,30 @@ namespace ConstructionManagement.Controllers
         }
 
         /// <summary>
+        /// Generates an AI-assisted task draft from a field description.
+        /// </summary>
+        /// <param name="projectId">The project ID that the task belongs to.</param>
+        /// <param name="request">The free-form site description to convert into a task draft.</param>
+        /// <returns>A structured AI task draft suggestion.</returns>
+        [Authorize(Roles = "Admin,PM")]
+        [HttpPost("api/projects/{projectId:guid}/tasks/ai-draft")]
+        public async Task<ActionResult<AiTaskDraftSuggestionDto>> GenerateTaskDraft(Guid projectId, [FromBody] AiTaskDraftRequestDto request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var draft = await _taskDraftAiService.GenerateTaskDraftAsync(projectId, request, cancellationToken);
+            if (draft is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(draft);
+        }
+
+        /// <summary>
         /// Updates editable fields of an existing task.
         /// </summary>
         /// <param name="id">The task ID.</param>
@@ -108,7 +134,7 @@ namespace ConstructionManagement.Controllers
         /// Updates only the status of a task.
         /// </summary>
         /// <param name="id">The task ID.</param>
-        /// <param name="request">The new status value. Allowed values: Todo, Doing, Done.</param>
+        /// <param name="request">The new status value. Allowed values: Draft, InProgress, Blocked, Done.</param>
         /// <returns>The updated task.</returns>
         [Authorize(Roles = "Admin,PM")]
         [HttpPatch("api/tasks/{id:guid}/status")]

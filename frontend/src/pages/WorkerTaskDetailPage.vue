@@ -17,8 +17,11 @@
           </div>
 
           <div class="hero-actions">
-            <a-button v-if="task.status === 'Todo'" type="primary" :loading="savingStatus === 'Doing'" @click="setStatus('Doing')">
+            <a-button v-if="task.status === 'Draft'" type="primary" :loading="savingStatus === 'InProgress'" @click="setStatus('InProgress')">
               开始任务
+            </a-button>
+            <a-button v-if="task.status === 'InProgress'" :loading="savingStatus === 'Blocked'" @click="setStatus('Blocked')">
+              标记阻塞
             </a-button>
             <a-button v-if="task.status !== 'Done'" :loading="savingStatus === 'Done'" @click="setStatus('Done')">
               标记完成
@@ -43,6 +46,14 @@
               <div class="task-fact-card">
                 <span>截止时间</span>
                 <strong>{{ formatDate(task.dueDate) }}</strong>
+              </div>
+              <div class="task-fact-card">
+                <span>优先级</span>
+                <strong>{{ task.priority }}</strong>
+              </div>
+              <div class="task-fact-card">
+                <span>预计工时</span>
+                <strong>{{ task.estimatedHours ? `${task.estimatedHours} 小时` : '未设置' }}</strong>
               </div>
               <div class="task-fact-card">
                 <span>团队成员</span>
@@ -76,28 +87,20 @@
             <a-space direction="vertical" style="width: 100%" size="middle">
               <div class="sop-step">
                 <strong>1. 查看资料</strong>
-                <span>先打开任务附件，确认图纸、照片和要求。</span>
+                <span>先确认任务说明、图纸和现场附件。</span>
               </div>
               <div class="sop-step">
                 <strong>2. 开始执行</strong>
-                <span>点击“开始任务”，让管理端知道现场已经开工。</span>
+                <span>从草稿切到进行中，让管理端知道现场已经开工。</span>
               </div>
               <div class="sop-step">
-                <strong>3. 上传回传</strong>
-                <span>把现场照片、文档、记录上传，管理员会在附件区看到。</span>
+                <strong>3. 遇阻即反馈</strong>
+                <span>如果材料、尺寸或现场条件有问题，先标记阻塞并反馈。</span>
               </div>
               <div class="sop-step">
-                <strong>4. 异常反馈或完工汇报</strong>
-                <span>遇阻就反馈问题，做完就发完工汇报，再标记完成。</span>
+                <strong>4. 完工再回传</strong>
+                <span>上传现场回传，补充说明后再标记完成。</span>
               </div>
-            </a-space>
-          </a-card>
-
-          <a-card class="page-card" :bordered="false" title="快捷沟通">
-            <a-space direction="vertical" style="width: 100%">
-              <a-button block @click="openNotifyModal('Issue')">向 Admin / PM 反馈问题</a-button>
-              <a-button block @click="openNotifyModal('Completion')">发送完工说明</a-button>
-              <a-alert message="回传文件会进入项目附件区，管理端可以直接查看。" type="info" show-icon />
             </a-space>
           </a-card>
         </a-col>
@@ -116,7 +119,7 @@
           <a-textarea
             v-model:value="notifyMessage"
             :rows="5"
-            :placeholder="notifyTopic === 'Issue' ? '例如：现场材料不足、尺寸不符、需要管理端确认。' : '例如：已完成施工，请管理端复核。'"
+            :placeholder="notifyTopic === 'Issue' ? '例如：现场尺寸与图纸不符，需要 PM 确认。' : '例如：现场施工已完成，请安排复核。'"
           />
         </a-form-item>
       </a-form>
@@ -155,14 +158,16 @@ const uploadingAttachment = ref(false)
 const selectedFile = ref<File | null>(null)
 
 const statusColorMap: Record<UpdateTaskStatusPayload['status'], string> = {
-  Todo: 'default',
-  Doing: 'processing',
+  Draft: 'default',
+  InProgress: 'processing',
+  Blocked: 'warning',
   Done: 'success',
 }
 
 const statusLabelMap: Record<UpdateTaskStatusPayload['status'], string> = {
-  Todo: '待开始',
-  Doing: '进行中',
+  Draft: '草稿',
+  InProgress: '进行中',
+  Blocked: '阻塞',
   Done: '已完成',
 }
 
@@ -182,11 +187,9 @@ async function setStatus(status: UpdateTaskStatusPayload['status']) {
   savingStatus.value = status
 
   try {
-    const { data } = await api.patch<TaskDetail>(`/my/tasks/${route.params.id}/status`, {
-      status,
-    })
+    const { data } = await api.patch<TaskDetail>(`/my/tasks/${route.params.id}/status`, { status })
     task.value = data
-    message.success(status === 'Done' ? '任务已标记完成。' : '任务状态已更新。')
+    message.success(status === 'Done' ? '任务已标记完成。' : status === 'Blocked' ? '任务已标记阻塞。' : '任务状态已更新。')
   } catch {
     message.error('更新任务状态失败。')
   } finally {
@@ -270,8 +273,8 @@ async function previewAttachment(attachmentId: string, fileName: string) {
   }
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleString()
+function formatDate(value?: string | null) {
+  return value ? new Date(value).toLocaleString() : '未设置'
 }
 
 function formatFileSize(value: number) {

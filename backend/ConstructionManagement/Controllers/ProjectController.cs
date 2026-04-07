@@ -15,10 +15,12 @@ namespace ConstructionManagement.Controllers
     public class ProjectController : ControllerBase
     {
         private readonly IProjectService _projectService;
+        private readonly IProjectAiService _projectAiService;
 
-        public ProjectController(IProjectService projectService)
+        public ProjectController(IProjectService projectService, IProjectAiService projectAiService)
         {
             _projectService = projectService;
+            _projectAiService = projectAiService;
         }
 
         /// <summary>
@@ -46,6 +48,29 @@ namespace ConstructionManagement.Controllers
             }
 
             return Ok(project);
+        }
+
+        /// <summary>
+        /// Generates an AI weekly summary for the selected project using live project, task, and variation data.
+        /// </summary>
+        /// <param name="id">The project ID.</param>
+        /// <param name="request">Optional PM notes that should influence the summary.</param>
+        /// <returns>A structured weekly summary.</returns>
+        [HttpPost("{id:guid}/ai/weekly-summary")]
+        public async Task<ActionResult<AiWeeklySummaryDto>> GenerateWeeklySummary(Guid id, [FromBody] AiWeeklySummaryRequestDto request, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            var summary = await _projectAiService.GenerateWeeklySummaryAsync(id, request, cancellationToken);
+            if (summary is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(summary);
         }
 
         /// <summary>

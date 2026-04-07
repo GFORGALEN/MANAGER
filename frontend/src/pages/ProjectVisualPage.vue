@@ -32,6 +32,7 @@
                     <a-space wrap>
                       <a-tag>{{ t('todo') }} {{ item.todoCount }}</a-tag>
                       <a-tag color="processing">{{ t('doing') }} {{ item.doingCount }}</a-tag>
+                      <a-tag color="warning">{{ t('blocked') }} {{ item.blockedCount }}</a-tag>
                       <a-tag color="success">{{ t('done') }} {{ item.doneCount }}</a-tag>
                     </a-space>
 
@@ -101,6 +102,7 @@ type ProgressCard = ProjectListItem & {
   taskCount: number
   todoCount: number
   doingCount: number
+  blockedCount: number
   doneCount: number
   variationCount: number
   approvedVariationCount: number
@@ -136,8 +138,9 @@ const cards = computed<ProgressCard[]>(() =>
     const tasks = taskMap.value[project.projectId] ?? []
     const variations = variationMap.value[project.projectId] ?? []
     const attachments = attachmentMap.value[project.projectId] ?? []
-    const todoCount = tasks.filter((task) => task.status === 'Todo').length
-    const doingCount = tasks.filter((task) => task.status === 'Doing').length
+    const todoCount = tasks.filter((task) => task.status === 'Draft').length
+    const doingCount = tasks.filter((task) => task.status === 'InProgress').length
+    const blockedCount = tasks.filter((task) => task.status === 'Blocked').length
     const doneCount = tasks.filter((task) => task.status === 'Done').length
     const progress = tasks.length > 0
       ? Math.round((doneCount / tasks.length) * 100)
@@ -156,6 +159,7 @@ const cards = computed<ProgressCard[]>(() =>
       taskCount: tasks.length,
       todoCount,
       doingCount,
+      blockedCount,
       doneCount,
       variationCount: variations.length,
       approvedVariationCount: variations.filter((item) => item.status === 'Approved').length,
@@ -328,8 +332,9 @@ function statusGradient(status: string) {
 
 function taskStatusColor(status: TaskItem['status']) {
   return ({
-    Todo: 'linear-gradient(135deg, #64748b, #94a3b8)',
-    Doing: 'linear-gradient(135deg, #2563eb, #06b6d4)',
+    Draft: 'linear-gradient(135deg, #64748b, #94a3b8)',
+    InProgress: 'linear-gradient(135deg, #2563eb, #06b6d4)',
+    Blocked: 'linear-gradient(135deg, #d97706, #f59e0b)',
     Done: 'linear-gradient(135deg, #16a34a, #22c55e)',
   } as Record<TaskItem['status'], string>)[status]
 }

@@ -4,13 +4,13 @@ namespace ConstructionManagement.Helpers
 {
     public static class StatusValidators
     {
-        public static readonly string[] TaskStatuses = ["Todo", "Doing", "Done"];
+        public static readonly string[] TaskStatuses = ["Draft", "InProgress", "Blocked", "Done"];
 
         public static readonly string[] VariationStatuses = ["Draft", "Submitted", "Approved", "Rejected", "NeedInfo"];
 
         public static string ValidateTaskStatus(string status)
         {
-            return Validate(status, TaskStatuses, "Status must be one of: Todo, Doing, Done.");
+            return Validate(status, TaskStatuses, "Status must be one of: Draft, InProgress, Blocked, Done.");
         }
 
         public static string ValidateVariationStatus(string status)

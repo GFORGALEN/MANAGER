@@ -8,69 +8,36 @@ namespace ConstructionManagement.DTOs.Tasks
     /// </summary>
     public class TaskItemListDto
     {
-        /// <summary>
-        /// Unique task identifier.
-        /// </summary>
         public Guid TaskItemId { get; set; }
 
-        /// <summary>
-        /// Parent project identifier.
-        /// </summary>
         public Guid ProjectId { get; set; }
 
-        /// <summary>
-        /// Short title of the task.
-        /// </summary>
         public string Title { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Related project name.
-        /// </summary>
         public string ProjectName { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Optional detailed description of the task.
-        /// </summary>
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Current task status.
-        /// </summary>
         public string Status { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Assigned worker identifier when the task is assigned.
-        /// </summary>
+        public string Priority { get; set; } = string.Empty;
+
+        public string? Category { get; set; }
+
+        public decimal? EstimatedHours { get; set; }
+
         public Guid? AssignedUserId { get; set; }
 
-        /// <summary>
-        /// Assigned worker display name when available.
-        /// </summary>
         public string? AssignedUserName { get; set; }
 
-        /// <summary>
-        /// All assigned user IDs.
-        /// </summary>
         public List<Guid> AssignedUserIds { get; set; } = [];
 
-        /// <summary>
-        /// All assigned users for this task.
-        /// </summary>
         public List<TaskAssigneeDto> AssignedUsers { get; set; } = [];
 
-        /// <summary>
-        /// Planned start date for the task.
-        /// </summary>
         public DateTime StartDate { get; set; }
 
-        /// <summary>
-        /// Planned due date for the task.
-        /// </summary>
         public DateTime DueDate { get; set; }
 
-        /// <summary>
-        /// UTC timestamp when the task was created.
-        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 
@@ -79,85 +46,43 @@ namespace ConstructionManagement.DTOs.Tasks
     /// </summary>
     public class TaskItemDetailDto
     {
-        /// <summary>
-        /// Unique task identifier.
-        /// </summary>
         public Guid TaskItemId { get; set; }
 
-        /// <summary>
-        /// Parent project identifier.
-        /// </summary>
         public Guid ProjectId { get; set; }
 
-        /// <summary>
-        /// Short title of the task.
-        /// </summary>
         public string Title { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Optional detailed description of the task.
-        /// </summary>
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Current task status.
-        /// </summary>
         public string Status { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Related project name.
-        /// </summary>
+        public string Priority { get; set; } = string.Empty;
+
+        public string? Category { get; set; }
+
+        public decimal? EstimatedHours { get; set; }
+
         public string ProjectName { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Related project address.
-        /// </summary>
         public string ProjectAddress { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Assigned worker identifier when the task is assigned.
-        /// </summary>
         public Guid? AssignedUserId { get; set; }
 
-        /// <summary>
-        /// Assigned worker display name when available.
-        /// </summary>
         public string? AssignedUserName { get; set; }
 
-        /// <summary>
-        /// All assigned user IDs.
-        /// </summary>
         public List<Guid> AssignedUserIds { get; set; } = [];
 
-        /// <summary>
-        /// All assigned users for this task.
-        /// </summary>
         public List<TaskAssigneeDto> AssignedUsers { get; set; } = [];
 
-        /// <summary>
-        /// Planned start date for the task.
-        /// </summary>
         public DateTime StartDate { get; set; }
 
-        /// <summary>
-        /// Planned due date for the task.
-        /// </summary>
         public DateTime DueDate { get; set; }
 
-        /// <summary>
-        /// UTC timestamp when the task was created.
-        /// </summary>
         public DateTime CreatedAt { get; set; }
 
-        /// <summary>
-        /// Project attachments available to the worker for reference.
-        /// </summary>
         public List<TaskAttachmentDto> Attachments { get; set; } = [];
     }
 
-    /// <summary>
-    /// Attachment summary nested under task detail responses.
-    /// </summary>
     public class TaskAttachmentDto
     {
         public Guid AttachmentId { get; set; }
@@ -173,9 +98,6 @@ namespace ConstructionManagement.DTOs.Tasks
         public DateTime UploadedAt { get; set; }
     }
 
-    /// <summary>
-    /// Minimal assignee summary nested under task responses.
-    /// </summary>
     public class TaskAssigneeDto
     {
         public Guid UserId { get; set; }
@@ -192,48 +114,59 @@ namespace ConstructionManagement.DTOs.Tasks
     /// </summary>
     public class CreateTaskItemDto
     {
-        /// <summary>
-        /// Short title of the task.
-        /// </summary>
         [Required]
         [MinLength(1)]
         public required string Title { get; set; }
 
-        /// <summary>
-        /// Optional detailed description of the task.
-        /// </summary>
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Planned start date for the task. If omitted, the backend uses the current UTC time.
-        /// </summary>
+        public string Priority { get; set; } = "Medium";
+
+        public string? Category { get; set; }
+
+        [Range(typeof(decimal), "0.5", "9999")]
+        public decimal? EstimatedHours { get; set; }
+
         public DateTime? StartDate { get; set; }
 
-        /// <summary>
-        /// Planned due date for the task.
-        /// </summary>
         [Required]
         public DateTime DueDate { get; set; }
 
-        /// <summary>
-        /// Optional contractor user ID assigned to the task.
-        /// </summary>
         public Guid? AssignedUserId { get; set; }
 
-        /// <summary>
-        /// Optional list of assigned user IDs for collaborative work.
-        /// </summary>
         public List<Guid>? AssignedUserIds { get; set; }
     }
 
     /// <summary>
-    /// Request body used to update task status.
+    /// Request body used to generate an AI task draft from a field description.
     /// </summary>
+    public class AiTaskDraftRequestDto
+    {
+        [Required]
+        [MinLength(10)]
+        public required string SiteDescription { get; set; }
+    }
+
+    /// <summary>
+    /// Structured task draft suggested by the AI assistant.
+    /// </summary>
+    public class AiTaskDraftSuggestionDto
+    {
+        public string Title { get; set; } = string.Empty;
+
+        public string Summary { get; set; } = string.Empty;
+
+        public string Priority { get; set; } = string.Empty;
+
+        public string Category { get; set; } = string.Empty;
+
+        public decimal EstimatedHours { get; set; }
+
+        public List<string> ExecutionSteps { get; set; } = [];
+    }
+
     public class UpdateTaskStatusDto
     {
-        /// <summary>
-        /// New task status. Allowed values: Todo, Doing, Done.
-        /// </summary>
         [Required]
         [MinLength(1)]
         public required string Status { get; set; }
@@ -244,37 +177,26 @@ namespace ConstructionManagement.DTOs.Tasks
     /// </summary>
     public class UpdateTaskItemDto
     {
-        /// <summary>
-        /// Updated short title of the task.
-        /// </summary>
         [Required]
         [MinLength(1)]
         public required string Title { get; set; }
 
-        /// <summary>
-        /// Updated detailed description of the task.
-        /// </summary>
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Updated planned start date for the task. If omitted, the backend keeps the existing start date.
-        /// </summary>
+        public string Priority { get; set; } = "Medium";
+
+        public string? Category { get; set; }
+
+        [Range(typeof(decimal), "0.5", "9999")]
+        public decimal? EstimatedHours { get; set; }
+
         public DateTime? StartDate { get; set; }
 
-        /// <summary>
-        /// Updated due date for the task.
-        /// </summary>
         [Required]
         public DateTime DueDate { get; set; }
 
-        /// <summary>
-        /// Optional contractor user ID assigned to the task.
-        /// </summary>
         public Guid? AssignedUserId { get; set; }
 
-        /// <summary>
-        /// Optional list of assigned user IDs for collaborative work.
-        /// </summary>
         public List<Guid>? AssignedUserIds { get; set; }
     }
 
@@ -283,24 +205,15 @@ namespace ConstructionManagement.DTOs.Tasks
     /// </summary>
     public class NotifyTaskAdminDto
     {
-        /// <summary>
-        /// Communication topic. Allowed values: Issue, Completion.
-        /// </summary>
         [Required]
         [MinLength(1)]
         public required string Topic { get; set; }
 
-        /// <summary>
-        /// Free-form message from the contractor.
-        /// </summary>
         [Required]
         [MinLength(3)]
         public required string Message { get; set; }
     }
 
-    /// <summary>
-    /// Summary result returned after notifying admin or PM from a task.
-    /// </summary>
     public class TaskAdminNotificationResultDto
     {
         public Guid TaskItemId { get; set; }
@@ -328,6 +241,9 @@ namespace ConstructionManagement.DTOs.Tasks
                 ProjectName = taskItem.Project?.Name ?? string.Empty,
                 Description = taskItem.Description,
                 Status = taskItem.Status,
+                Priority = taskItem.Priority,
+                Category = taskItem.Category,
+                EstimatedHours = taskItem.EstimatedHours,
                 AssignedUserId = taskItem.AssignedUserId,
                 AssignedUserName = taskItem.AssignedUser?.Name,
                 AssignedUserIds = taskItem.TaskAssignments
@@ -357,6 +273,9 @@ namespace ConstructionManagement.DTOs.Tasks
                 Title = taskItem.Title,
                 Description = taskItem.Description,
                 Status = taskItem.Status,
+                Priority = taskItem.Priority,
+                Category = taskItem.Category,
+                EstimatedHours = taskItem.EstimatedHours,
                 ProjectName = taskItem.Project?.Name ?? string.Empty,
                 ProjectAddress = taskItem.Project?.Address ?? string.Empty,
                 AssignedUserId = taskItem.AssignedUserId,

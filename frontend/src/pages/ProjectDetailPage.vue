@@ -14,6 +14,7 @@
             </div>
 
             <a-space class="detail-actions">
+              <a-button type="primary" ghost @click="openWeeklySummaryModal" :disabled="!project">AI Weekly Summary</a-button>
               <a-button @click="openEditProjectModal" :disabled="!project">Edit Project</a-button>
               <a-popconfirm title="Delete this project?" ok-text="Delete" cancel-text="Cancel" @confirm="deleteProject">
                 <a-button danger :disabled="!project">Delete</a-button>
@@ -74,8 +75,9 @@
               <a-space wrap class="workspace-toolbar">
                 <a-select v-model:value="taskQuery.status" style="width: 160px" @change="fetchTasks">
                   <a-select-option value="">All Statuses</a-select-option>
-                  <a-select-option value="Todo">Todo</a-select-option>
-                  <a-select-option value="Doing">Doing</a-select-option>
+                  <a-select-option value="Draft">Draft</a-select-option>
+                  <a-select-option value="InProgress">In Progress</a-select-option>
+                  <a-select-option value="Blocked">Blocked</a-select-option>
                   <a-select-option value="Done">Done</a-select-option>
                 </a-select>
                 <a-button type="primary" @click="openCreateTaskModal">New Task</a-button>
@@ -92,6 +94,12 @@
                     <a-card v-for="task in column.items" :key="task.taskItemId" size="small">
                       <a-space direction="vertical" style="width: 100%">
                         <strong>{{ task.title }}</strong>
+                        <a-space wrap size="small">
+                          <a-tag :color="taskPriorityColor(task.priority)">{{ taskPriorityLabel(task.priority) }}</a-tag>
+                          <a-tag v-if="task.category">{{ task.category }}</a-tag>
+                          <a-tag v-if="task.estimatedHours" color="gold">约 {{ task.estimatedHours }} 小时</a-tag>
+                        </a-space>
+                        <span class="muted">{{ taskDescriptionPreview(task.description) }}</span>
                         <span class="muted">{{ task.assignedUserName || '-' }}</span>
                         <span class="muted">{{ formatDate(task.dueDate) }}</span>
                       </a-space>
@@ -110,10 +118,20 @@
                   </template>
                   <template v-else-if="column.key === 'status'">
                     <a-select :value="record.status" style="width: 120px" @change="(value) => updateTaskStatus(record.taskItemId, value)">
-                      <a-select-option value="Todo">Todo</a-select-option>
-                      <a-select-option value="Doing">Doing</a-select-option>
+                      <a-select-option value="Draft">Draft</a-select-option>
+                      <a-select-option value="InProgress">In Progress</a-select-option>
+                      <a-select-option value="Blocked">Blocked</a-select-option>
                       <a-select-option value="Done">Done</a-select-option>
                     </a-select>
+                  </template>
+                  <template v-else-if="column.key === 'priority'">
+                    <a-tag :color="taskPriorityColor(record.priority)">{{ taskPriorityLabel(record.priority) }}</a-tag>
+                  </template>
+                  <template v-else-if="column.key === 'estimatedHours'">
+                    {{ record.estimatedHours ? `${record.estimatedHours} h` : '-' }}
+                  </template>
+                  <template v-else-if="column.key === 'description'">
+                    {{ taskDescriptionPreview(record.description) }}
                   </template>
                   <template v-else-if="column.key === 'assignedUsers'">
                     <a-space wrap>
@@ -265,17 +283,127 @@
     </a-modal>
 
     <a-modal
+      v-model:open="weeklySummaryModalOpen"
+      title="AI Weekly Summary"
+      :footer="null"
+      width="760px"
+    >
+      <a-space direction="vertical" size="middle" style="width: 100%">
+        <a-alert
+          message="Generate a PM-ready weekly summary from current project, task, and variation data."
+          type="info"
+          show-icon
+        />
+        <a-form layout="vertical">
+          <a-form-item label="Optional PM Notes">
+            <a-textarea
+              v-model:value="weeklySummaryPrompt.contextNotes"
+              :rows="4"
+              placeholder="Example: Client requested faster wet-area completion. Ceiling leak at level 3 remains sensitive and requires electrical coordination."
+            />
+          </a-form-item>
+          <a-form-item style="margin-bottom: 0">
+            <a-space>
+              <a-button type="primary" :loading="weeklySummaryGenerating" @click="generateWeeklySummary">Generate Summary</a-button>
+              <a-button v-if="weeklySummary" @click="generateWeeklySummary">Regenerate</a-button>
+            </a-space>
+          </a-form-item>
+        </a-form>
+
+        <a-card v-if="weeklySummary" class="weekly-summary-card">
+          <template #title>{{ weeklySummary.headline }}</template>
+          <p class="weekly-summary-copy">{{ weeklySummary.summary }}</p>
+
+          <section class="weekly-summary-section">
+            <h4>Progress Highlights</h4>
+            <ul>
+              <li v-for="item in weeklySummary.progressHighlights" :key="`progress-${item}`">{{ item }}</li>
+            </ul>
+          </section>
+
+          <section class="weekly-summary-section">
+            <h4>Risk Alerts</h4>
+            <ul v-if="weeklySummary.riskAlerts.length > 0">
+              <li v-for="item in weeklySummary.riskAlerts" :key="`risk-${item}`">{{ item }}</li>
+            </ul>
+            <p v-else class="muted">No major risks flagged for this reporting cycle.</p>
+          </section>
+
+          <section class="weekly-summary-section">
+            <h4>Next Week Plan</h4>
+            <ul>
+              <li v-for="item in weeklySummary.nextWeekPlan" :key="`next-${item}`">{{ item }}</li>
+            </ul>
+          </section>
+
+          <section class="weekly-summary-section">
+            <h4>Open Decisions</h4>
+            <ul v-if="weeklySummary.openDecisions.length > 0">
+              <li v-for="item in weeklySummary.openDecisions" :key="`decision-${item}`">{{ item }}</li>
+            </ul>
+            <p v-else class="muted">No open decisions were highlighted.</p>
+          </section>
+        </a-card>
+      </a-space>
+    </a-modal>
+
+    <a-modal
       v-model:open="taskModalOpen"
       :title="taskModalMode === 'create' ? 'Create Task' : 'Edit Task'"
       :confirm-loading="taskSaving"
       @ok="submitTask"
     >
       <a-form layout="vertical">
+        <template v-if="taskModalMode === 'create'">
+          <a-alert
+            message="AI Task Draft"
+            description="Paste a site description and let AI suggest a task title, summary, category, priority, and execution steps."
+            type="info"
+            show-icon
+            style="margin-bottom: 16px"
+          />
+          <a-form-item label="Site Description for AI">
+            <a-textarea
+              v-model:value="aiDraftPrompt.siteDescription"
+              :rows="4"
+              placeholder="Example: Ceiling leak found near the north stairwell on level 3. Water staining is spreading and electrical conduit is nearby."
+            />
+          </a-form-item>
+          <a-form-item>
+            <a-button :loading="aiGenerating" @click="generateTaskDraft">Generate with AI</a-button>
+          </a-form-item>
+          <a-card v-if="aiDraftSuggestion" size="small" style="margin-bottom: 16px">
+            <template #title>AI Suggestion</template>
+            <a-space wrap style="margin-bottom: 12px">
+              <a-tag :color="taskPriorityColor(aiDraftSuggestion.priority)">{{ taskPriorityLabel(aiDraftSuggestion.priority) }}</a-tag>
+              <a-tag>{{ aiDraftSuggestion.category }}</a-tag>
+              <a-tag color="gold">约 {{ aiDraftSuggestion.estimatedHours }} 小时</a-tag>
+            </a-space>
+            <p style="margin-bottom: 12px">{{ aiDraftSuggestion.summary }}</p>
+            <ol style="padding-left: 18px; margin: 0">
+              <li v-for="step in aiDraftSuggestion.executionSteps" :key="step">{{ step }}</li>
+            </ol>
+          </a-card>
+        </template>
         <a-form-item label="Title" required>
           <a-input v-model:value="taskForm.title" />
         </a-form-item>
         <a-form-item label="Description">
           <a-textarea v-model:value="taskForm.description" :rows="3" />
+        </a-form-item>
+        <a-form-item label="Priority">
+          <a-select v-model:value="taskForm.priority">
+            <a-select-option value="Low">低 / Low</a-select-option>
+            <a-select-option value="Medium">中 / Medium</a-select-option>
+            <a-select-option value="High">高 / High</a-select-option>
+            <a-select-option value="Critical">紧急 / Critical</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="Category">
+          <a-input v-model:value="taskForm.category" placeholder="例如：机电 / MEP，防水 / Waterproofing" />
+        </a-form-item>
+        <a-form-item label="Estimated Hours">
+          <a-input-number v-model:value="taskForm.estimatedHours" style="width: 100%" :min="0.5" :step="0.5" />
         </a-form-item>
         <a-form-item label="Start Date" required>
           <a-input v-model:value="taskForm.startDate" type="datetime-local" />
@@ -386,8 +514,8 @@ import api from '@/services/api'
 import { useI18n } from '@/services/i18n'
 import type { Attachment, CreateAttachmentPayload, UpdateAttachmentPayload } from '@/types/attachment'
 import type { PagedResult } from '@/types/common'
-import type { ProjectDetail, UpdateProjectPayload } from '@/types/project'
-import type { CreateTaskPayload, TaskEmailResult, TaskItem, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
+import type { AiWeeklySummary, AiWeeklySummaryRequest, ProjectDetail, UpdateProjectPayload } from '@/types/project'
+import type { AiTaskDraftRequest, AiTaskDraftSuggestion, CreateTaskPayload, TaskEmailResult, TaskItem, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
 import type { UserSummary } from '@/types/user'
 import type { CreateVariationPayload, UpdateVariationPayload, UpdateVariationStatusPayload, Variation } from '@/types/variation'
 
@@ -415,11 +543,16 @@ const attachmentsLoading = ref(false)
 
 const projectModalOpen = ref(false)
 const projectSaving = ref(false)
+const weeklySummaryModalOpen = ref(false)
+const weeklySummaryGenerating = ref(false)
+const weeklySummary = ref<AiWeeklySummary | null>(null)
 
 const taskModalOpen = ref(false)
 const taskModalMode = ref<'create' | 'edit'>('create')
 const taskSaving = ref(false)
 const selectedTaskId = ref<string | null>(null)
+const aiGenerating = ref(false)
+const aiDraftSuggestion = ref<AiTaskDraftSuggestion | null>(null)
 const taskEmailModalOpen = ref(false)
 const taskEmailSending = ref(false)
 const selectedEmailTask = ref<TaskItem | null>(null)
@@ -450,13 +583,24 @@ const projectForm = reactive<UpdateProjectPayload>({
   endDate: '',
 })
 
+const weeklySummaryPrompt = reactive<AiWeeklySummaryRequest>({
+  contextNotes: '',
+})
+
 const taskForm = reactive<CreateTaskPayload & UpdateTaskPayload>({
   title: '',
   description: '',
+  priority: 'Medium',
+  category: '',
+  estimatedHours: null,
   startDate: '',
   dueDate: '',
   assignedUserId: undefined,
   assignedUserIds: [],
+})
+
+const aiDraftPrompt = reactive<AiTaskDraftRequest>({
+  siteDescription: '',
 })
 
 const taskEmailForm = reactive({
@@ -501,6 +645,9 @@ function getRequestedTab() {
 
 const taskColumns = [
   { title: 'Title', dataIndex: 'title', key: 'title' },
+  { title: 'Priority', dataIndex: 'priority', key: 'priority', width: 120 },
+  { title: 'Category', dataIndex: 'category', key: 'category', width: 180 },
+  { title: 'Est. Hours', dataIndex: 'estimatedHours', key: 'estimatedHours', width: 120 },
   { title: 'Team', dataIndex: 'assignedUsers', key: 'assignedUsers' },
   { title: 'Description', dataIndex: 'description', key: 'description' },
   { title: 'Start Date', dataIndex: 'startDate', key: 'startDate' },
@@ -534,8 +681,9 @@ const assignableUserOptions = computed(() =>
 )
 
 const taskBoardColumns = computed(() => ([
-  { status: 'Todo', label: t('todo'), items: tasks.value.filter((task) => task.status === 'Todo') },
-  { status: 'Doing', label: t('doing'), items: tasks.value.filter((task) => task.status === 'Doing') },
+  { status: 'Draft', label: t('todo'), items: tasks.value.filter((task) => task.status === 'Draft') },
+  { status: 'InProgress', label: t('doing'), items: tasks.value.filter((task) => task.status === 'InProgress') },
+  { status: 'Blocked', label: t('blocked'), items: tasks.value.filter((task) => task.status === 'Blocked') },
   { status: 'Done', label: t('done'), items: tasks.value.filter((task) => task.status === 'Done') },
 ]))
 
@@ -642,6 +790,10 @@ function openEditProjectModal() {
   projectModalOpen.value = true
 }
 
+function openWeeklySummaryModal() {
+  weeklySummaryModalOpen.value = true
+}
+
 async function submitProject() {
   if (!projectForm.code.trim() || !projectForm.name.trim() || !projectForm.address.trim()) {
     message.warning('Project code, name, and address are required.')
@@ -681,8 +833,13 @@ async function deleteProject() {
 function openCreateTaskModal() {
   taskModalMode.value = 'create'
   selectedTaskId.value = null
+  aiDraftPrompt.siteDescription = ''
+  aiDraftSuggestion.value = null
   taskForm.title = ''
   taskForm.description = ''
+  taskForm.priority = 'Medium'
+  taskForm.category = ''
+  taskForm.estimatedHours = null
   taskForm.startDate = ''
   taskForm.dueDate = ''
   taskForm.assignedUserId = undefined
@@ -693,13 +850,78 @@ function openCreateTaskModal() {
 function openEditTaskModal(task: TaskItem) {
   taskModalMode.value = 'edit'
   selectedTaskId.value = task.taskItemId
+  aiDraftPrompt.siteDescription = ''
+  aiDraftSuggestion.value = null
   taskForm.title = task.title
   taskForm.description = task.description ?? ''
+  taskForm.priority = task.priority
+  taskForm.category = task.category ?? ''
+  taskForm.estimatedHours = task.estimatedHours ?? null
   taskForm.startDate = toLocalInputValue(task.startDate ?? task.createdAt)
   taskForm.dueDate = toLocalInputValue(task.dueDate)
   taskForm.assignedUserId = task.assignedUserId ?? undefined
   taskForm.assignedUserIds = [...task.assignedUserIds]
   taskModalOpen.value = true
+}
+
+async function generateTaskDraft() {
+  if (!aiDraftPrompt.siteDescription.trim()) {
+    message.warning('Site description is required for AI generation.')
+    return
+  }
+
+  aiGenerating.value = true
+  try {
+    const { data } = await api.post<AiTaskDraftSuggestion>(`/projects/${projectId.value}/tasks/ai-draft`, {
+      siteDescription: aiDraftPrompt.siteDescription,
+    }, {
+      timeout: 60000,
+    })
+
+    aiDraftSuggestion.value = data
+    taskForm.title = data.title
+    taskForm.priority = data.priority
+    taskForm.category = data.category
+    taskForm.estimatedHours = data.estimatedHours
+    taskForm.description = [
+      data.summary,
+      '',
+      `优先级 / Priority: ${taskPriorityLabel(data.priority)}`,
+      `分类 / Category: ${data.category}`,
+      `预计工时 / Estimated effort: ${data.estimatedHours} 小时 / hours`,
+      '',
+      '建议步骤 / Suggested steps:',
+      ...data.executionSteps.map((step, index) => `${index + 1}. ${step}`),
+    ].join('\n')
+
+    if (!taskForm.startDate) {
+      taskForm.startDate = toLocalInputValue(new Date().toISOString())
+    }
+
+    message.success('AI task draft generated.')
+  } catch (error) {
+    message.error(extractApiError(error, 'Failed to generate AI task draft.'))
+  } finally {
+    aiGenerating.value = false
+  }
+}
+
+async function generateWeeklySummary() {
+  weeklySummaryGenerating.value = true
+  try {
+    const { data } = await api.post<AiWeeklySummary>(`/projects/${projectId.value}/ai/weekly-summary`, {
+      contextNotes: weeklySummaryPrompt.contextNotes || null,
+    }, {
+      timeout: 60000,
+    })
+
+    weeklySummary.value = data
+    message.success('AI weekly summary generated.')
+  } catch (error) {
+    message.error(extractApiError(error, 'Failed to generate AI weekly summary.'))
+  } finally {
+    weeklySummaryGenerating.value = false
+  }
 }
 
 function openTaskEmailModal(task: TaskItem) {
@@ -719,6 +941,9 @@ async function submitTask() {
     const payload = {
       title: taskForm.title,
       description: taskForm.description || null,
+      priority: taskForm.priority,
+      category: taskForm.category || null,
+      estimatedHours: taskForm.estimatedHours ?? null,
       startDate: new Date(taskForm.startDate).toISOString(),
       dueDate: new Date(taskForm.dueDate).toISOString(),
       assignedUserId: taskForm.assignedUserIds?.[0] || null,
@@ -962,6 +1187,37 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value)
 }
 
+function taskPriorityColor(priority: string) {
+  return ({
+    Low: 'default',
+    Medium: 'blue',
+    High: 'orange',
+    Critical: 'red',
+  } as Record<string, string>)[priority] ?? 'default'
+}
+
+function taskPriorityLabel(priority: string) {
+  return ({
+    Low: '低 / Low',
+    Medium: '中 / Medium',
+    High: '高 / High',
+    Critical: '紧急 / Critical',
+  } as Record<string, string>)[priority] ?? priority
+}
+
+function taskDescriptionPreview(value?: string | null) {
+  if (!value) return 'No detail yet.'
+
+  const firstMeaningfulLine = value
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0)
+
+  if (!firstMeaningfulLine) return 'No detail yet.'
+
+  return firstMeaningfulLine.length > 88 ? `${firstMeaningfulLine.slice(0, 88)}...` : firstMeaningfulLine
+}
+
 function projectStatusColor(status: string) {
   return ({
     Planning: 'default',
@@ -1166,6 +1422,39 @@ onMounted(() => {
   margin-bottom: 18px;
 }
 
+.weekly-summary-card {
+  border-radius: 22px;
+}
+
+.weekly-summary-copy {
+  margin: 0;
+  color: #475569;
+  line-height: 1.7;
+}
+
+.weekly-summary-section + .weekly-summary-section {
+  margin-top: 18px;
+}
+
+.weekly-summary-section h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.weekly-summary-section ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+}
+
+.weekly-summary-section li + li {
+  margin-top: 6px;
+}
+
 .workspace-toolbar {
   align-items: center;
   gap: 10px;
@@ -1173,7 +1462,7 @@ onMounted(() => {
 
 .task-board {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 

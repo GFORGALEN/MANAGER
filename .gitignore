@@ -18,6 +18,8 @@ yarn-error.log*
 .env.*
 !.env.example
 docs/INITIAL_ACCOUNTS.local.md
+docs/DEPLOY_RUNBOOK.local.md
+publish/
 
 # OS / editor
 .DS_Store

@@ -99,7 +99,10 @@ namespace ConstructionManagement.Services
                 ProjectId = projectId,
                 Title = request.Title.Trim(),
                 Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-                Status = "Todo",
+                Status = "Draft",
+                Priority = NormalizePriority(request.Priority),
+                Category = NormalizeCategory(request.Category),
+                EstimatedHours = NormalizeEstimatedHours(request.EstimatedHours),
                 StartDate = NormalizeStartDate(request.StartDate),
                 DueDate = request.DueDate,
                 AssignedUserId = await ValidateAssignedUserAsync(request.AssignedUserId, cancellationToken),
@@ -144,6 +147,9 @@ namespace ConstructionManagement.Services
 
             task.Title = request.Title.Trim();
             task.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            task.Priority = NormalizePriority(request.Priority);
+            task.Category = NormalizeCategory(request.Category);
+            task.EstimatedHours = NormalizeEstimatedHours(request.EstimatedHours);
             task.StartDate = NormalizeStartDate(request.StartDate, task.StartDate);
             task.DueDate = request.DueDate;
             var assignmentIds = await ValidateAssignedUsersAsync(request.AssignedUserId, request.AssignedUserIds, cancellationToken);
@@ -196,7 +202,10 @@ namespace ConstructionManagement.Services
                 ("title", _) => tasks.OrderBy(task => task.Title),
                 ("duedate", "desc") => tasks.OrderByDescending(task => task.DueDate),
                 ("duedate", _) => tasks.OrderBy(task => task.DueDate),
-                _ => tasks.OrderBy(task => task.Status == "Doing" ? 0 : task.Status == "Todo" ? 1 : 2)
+                _ => tasks.OrderBy(task =>
+                        task.Status == "InProgress" ? 0 :
+                        task.Status == "Blocked" ? 1 :
+                        task.Status == "Draft" ? 2 : 3)
                     .ThenBy(task => task.DueDate)
             };
 
@@ -566,6 +575,33 @@ namespace ConstructionManagement.Services
         private static DateTime NormalizeStartDate(DateTime? startDate, DateTime? fallback = null)
         {
             return startDate ?? fallback ?? DateTime.UtcNow;
+        }
+
+        private static string NormalizePriority(string? value)
+        {
+            return value?.Trim() switch
+            {
+                "Low" => "Low",
+                "Medium" => "Medium",
+                "High" => "High",
+                "Critical" => "Critical",
+                _ => "Medium"
+            };
+        }
+
+        private static string? NormalizeCategory(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private static decimal? NormalizeEstimatedHours(decimal? value)
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+
+            return Math.Round(Math.Max(0.5m, value.Value), 1, MidpointRounding.AwayFromZero);
         }
 
         private static string BuildTaskSmsMessage(TaskItem task, string? customMessage)

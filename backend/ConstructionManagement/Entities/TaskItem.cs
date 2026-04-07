@@ -10,7 +10,13 @@ namespace ConstructionManagement.Entities
 
         public string? Description { get; set; }
 
-        public string Status { get; set; } = "Todo";
+        public string Status { get; set; } = "Draft";
+
+        public string Priority { get; set; } = "Medium";
+
+        public string? Category { get; set; }
+
+        public decimal? EstimatedHours { get; set; }
 
         public DateTime StartDate { get; set; }
 

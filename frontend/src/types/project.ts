@@ -45,3 +45,16 @@ export interface UpdateProjectPayload {
   startDate?: string | null
   endDate?: string | null
 }
+
+export interface AiWeeklySummaryRequest {
+  contextNotes?: string | null
+}
+
+export interface AiWeeklySummary {
+  headline: string
+  summary: string
+  progressHighlights: string[]
+  riskAlerts: string[]
+  nextWeekPlan: string[]
+  openDecisions: string[]
+}
