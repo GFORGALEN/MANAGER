@@ -1,30 +1,26 @@
 <template>
-  <a-layout :class="roleThemeClass" style="min-height: 100vh">
+  <a-layout :class="['app-root', roleThemeClass]" style="min-height: 100vh">
     <a-layout-sider
       v-model:collapsed="collapsed"
       collapsible
       breakpoint="lg"
       collapsed-width="0"
-      theme="light"
-      width="240"
+      theme="dark"
+      width="260"
       class="app-sider"
     >
       <div class="brand-block">
         <div class="brand-mark">
-          <span>CM</span>
+          <BuildOutlined />
         </div>
         <div v-if="!collapsed" class="brand-copy">
-          <strong>{{ t('brandTitle') }}</strong>
-          <span>{{ t('brandSubtitle') }}</span>
+          <strong>BUILDMATE</strong>
+          <span>CONSTRUCTION MANAGEMENT</span>
         </div>
-      </div>
-      <div v-if="!collapsed" class="sider-context">
-        <div class="context-label">{{ roleLabel(currentUser?.role) || t('workspace') }}</div>
-        <strong>{{ pageTitle }}</strong>
-        <span>{{ t('headerSubtitle') }}</span>
       </div>
 
       <a-menu
+        theme="dark"
         mode="inline"
         :selected-keys="selectedKeys"
         @click="handleMenuClick"
@@ -61,65 +57,121 @@
         </a-menu-item>
         <a-menu-item v-if="isManagerView" key="/attachments">
           <template #icon>
-            <PaperClipOutlined />
+            <FileTextOutlined />
           </template>
-          {{ t('menuAttachments') }}
+          Documents
+        </a-menu-item>
+        <a-menu-item v-if="isManagerView" key="/calendar" disabled>
+          <template #icon>
+            <CalendarOutlined />
+          </template>
+          Calendar
+        </a-menu-item>
+        <a-menu-item v-if="isManagerView" key="/reports" disabled>
+          <template #icon>
+            <AuditOutlined />
+          </template>
+          Site Reports
+        </a-menu-item>
+        <a-menu-item v-if="isManagerView" key="/drawings" disabled>
+          <template #icon>
+            <DeploymentUnitOutlined />
+          </template>
+          Drawings
         </a-menu-item>
         <a-menu-item v-if="isManagerView" key="/users">
           <template #icon>
             <TeamOutlined />
           </template>
-          {{ t('menuUsers') }}
+          Teams
+        </a-menu-item>
+        <a-menu-item v-if="isManagerView" key="/settings" disabled>
+          <template #icon>
+            <SettingOutlined />
+          </template>
+          Settings
         </a-menu-item>
         <a-menu-item v-if="isWorkerView" key="/worker/dashboard">
           <template #icon>
-            <AppstoreOutlined />
+            <HomeOutlined />
           </template>
-          {{ t('menuDashboard') }}
+          My Work
         </a-menu-item>
         <a-menu-item v-if="isWorkerView" key="/worker/tasks">
           <template #icon>
             <CheckSquareOutlined />
           </template>
-          {{ t('menuMyTasks') }}
+          My Tasks
+        </a-menu-item>
+        <a-menu-item v-if="isWorkerView" key="/worker/report" disabled>
+          <template #icon>
+            <FileTextOutlined />
+          </template>
+          Submit Report
+        </a-menu-item>
+        <a-menu-item v-if="isWorkerView" key="/worker/safety" disabled>
+          <template #icon>
+            <SafetyCertificateOutlined />
+          </template>
+          Safety Training
         </a-menu-item>
         <a-menu-item v-if="isWorkerView" key="/worker/profile">
           <template #icon>
             <UserOutlined />
           </template>
-          {{ t('menuProfile') }}
+          Personal Settings
         </a-menu-item>
       </a-menu>
+
+      <div v-if="!collapsed && isManagerView" class="active-project">
+        <span>ACTIVE PROJECT</span>
+        <strong>{{ activeProject?.name ?? 'No active project' }}</strong>
+        <div class="active-project-row">
+          <small>Project Progress</small>
+          <small>{{ activeProjectProgress }}%</small>
+        </div>
+        <div class="active-progress"><i :style="{ width: activeProjectProgress + '%' }"></i></div>
+      </div>
+      <div v-if="!collapsed && isWorkerView" class="worker-profile-card">
+        <span class="worker-avatar">{{ currentUserLabel.slice(0, 1).toUpperCase() }}</span>
+        <strong>{{ currentUserLabel }}</strong>
+        <small>{{ roleLabel(currentUser?.role) || 'Contractor' }}</small>
+        <em>Online</em>
+      </div>
     </a-layout-sider>
 
     <a-layout>
       <a-layout-header class="app-header">
         <div class="header-intro">
-          <div class="header-title-row">
-            <div class="header-title">{{ pageTitle }}</div>
-            <div class="header-title-glow"></div>
-          </div>
-          <div class="header-subtitle">{{ t('headerSubtitle') }}</div>
+          <div class="header-title">{{ pageTitle }}</div>
         </div>
 
-        <a-space class="header-actions">
-          <div class="header-command-bar">
-            <LanguageSwitcher />
-            <a-tag class="role-pill" color="blue">{{ roleLabel(currentUser?.role) || t('unknown') }}</a-tag>
-            <a-dropdown>
-              <a-button class="profile-button">
-                <span class="profile-avatar">{{ currentUserLabel.slice(0, 1).toUpperCase() }}</span>
-                <span>{{ currentUserLabel }}</span>
-                <DownOutlined />
-              </a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item key="logout" @click="logout">{{ t('logout') }}</a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
-          </div>
-        </a-space>
+        <div class="header-search">
+          <SearchOutlined />
+          <input placeholder="Search projects, tasks, docs, people..." />
+        </div>
+
+        <div class="header-actions">
+          <button class="icon-button" type="button"><MessageOutlined /></button>
+          <button class="icon-button with-badge" type="button"><BellOutlined /><span>12</span></button>
+          <button class="icon-button" type="button"><QuestionCircleOutlined /></button>
+          <LanguageSwitcher />
+          <a-dropdown>
+            <button class="profile-button" type="button">
+              <span class="profile-avatar">{{ currentUserLabel.slice(0, 1).toUpperCase() }}</span>
+              <span class="profile-copy">
+                <strong>{{ currentUserLabel }}</strong>
+                <small>{{ roleLabel(currentUser?.role) || t('unknown') }}</small>
+              </span>
+              <DownOutlined />
+            </button>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item key="logout" @click="logout">{{ t('logout') }}</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+        </div>
       </a-layout-header>
 
       <a-layout-content class="content-area">
@@ -130,26 +182,41 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter, RouterView } from 'vue-router'
 import {
   AppstoreOutlined,
+  AuditOutlined,
+  BellOutlined,
+  BuildOutlined,
+  CalendarOutlined,
   CheckSquareOutlined,
+  DeploymentUnitOutlined,
   DownOutlined,
-  PaperClipOutlined,
+  FileTextOutlined,
+  HomeOutlined,
+  MessageOutlined,
   ProfileOutlined,
   ProjectOutlined,
+  QuestionCircleOutlined,
+  SearchOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue'
 
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { clearSession, getCurrentRole, getCurrentUser, getCurrentUserLabel } from '@/services/auth'
+import api from '@/services/api'
 import { useI18n } from '@/services/i18n'
+import type { PagedResult } from '@/types/common'
+import type { ProjectListItem } from '@/types/project'
 
 const route = useRoute()
 const router = useRouter()
 const collapsed = ref(false)
+const sidebarProjects = ref<ProjectListItem[]>([])
 
 const currentUser = computed(() => getCurrentUser())
 const currentUserLabel = computed(() => getCurrentUserLabel())
@@ -158,6 +225,17 @@ const isWorkerView = computed(() => getCurrentRole() === 'Contractor')
 const isManagerView = computed(() => !isWorkerView.value)
 const roleThemeClass = computed(() => `role-theme-${(currentRole.value ?? 'guest').toLowerCase()}`)
 const { t, roleLabel } = useI18n()
+const activeProject = computed(() => sidebarProjects.value.find((project) => project.status === 'Active') ?? sidebarProjects.value[0] ?? null)
+const activeProjectProgress = computed(() => {
+  if (!activeProject.value) return 0
+
+  return ({
+    Planning: 12,
+    Active: 68,
+    OnHold: 45,
+    Completed: 100,
+  } as Record<string, number>)[activeProject.value.status] ?? 30
+})
 const selectedKeys = computed(() => {
   if (route.path.startsWith('/projects')) {
     return ['/projects']
@@ -212,229 +290,349 @@ function logout() {
   clearSession()
   router.push({ name: 'login' })
 }
+
+async function fetchSidebarProjects() {
+  if (!isManagerView.value) return
+
+  try {
+    const { data } = await api.get<PagedResult<ProjectListItem>>('/projects', {
+      params: {
+        pageNumber: 1,
+        pageSize: 20,
+      },
+    })
+
+    sidebarProjects.value = data.items
+  } catch {
+    sidebarProjects.value = []
+  }
+}
+
+onMounted(fetchSidebarProjects)
 </script>
 
 <style scoped>
+.app-root {
+  background: #f4f7fb;
+}
+
 .brand-block {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 16px 14px;
+  gap: 12px;
+  height: 76px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .app-sider {
-  border-inline-end: 1px solid rgba(226, 232, 240, 0.8);
+  position: relative;
+  overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(247, 242, 235, 0.94) 18%, rgba(236, 229, 218, 0.98)) !important;
-  box-shadow:
-    inset -1px 0 0 rgba(255, 255, 255, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(180deg, #07192b 0%, #092238 48%, #071522 100%) !important;
+  background-size: 22px 22px, 22px 22px, auto;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #7c2d12, #b91c1c);
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #ff8a00, #f05a00);
   color: #fff;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  box-shadow: 0 12px 28px rgba(124, 45, 18, 0.24);
-}
-
-.brand-mark span {
-  transform: translateY(-0.5px);
+  font-size: 24px;
+  box-shadow: 0 14px 24px rgba(249, 115, 22, 0.24);
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  line-height: 1.05;
+  gap: 1px;
+  line-height: 1;
 }
 
 .brand-copy strong {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.06em;
-  color: #111827;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #f8fafc;
 }
 
 .brand-copy span {
-  color: #8e7f6d;
-  font-size: 11px;
-  letter-spacing: 0.02em;
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
-.sider-context {
-  margin: 2px 16px 12px;
+.active-project {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  left: 14px;
   padding: 14px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.92));
-  color: #fff;
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  background: rgba(15, 48, 74, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sider-context strong {
+.active-project span {
+  color: rgba(203, 213, 225, 0.68);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.active-project strong {
   display: block;
-  margin: 6px 0;
+  margin: 8px 0 14px;
+  color: #fff;
+  font-size: 13px;
+}
+
+.active-project-row {
+  display: flex;
+  justify-content: space-between;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.active-progress {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.24);
+  overflow: hidden;
+}
+
+.active-progress i {
+  display: block;
+  width: 66%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f62d6, #1d9bf0);
+}
+
+.worker-profile-card {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  left: 14px;
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(15, 48, 74, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.worker-avatar {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ff8a00, #0f62d6);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.worker-profile-card strong {
   font-size: 15px;
 }
 
-.sider-context span {
-  display: block;
-  color: rgba(226, 232, 240, 0.72);
-  font-size: 12px;
-  line-height: 1.45;
+.worker-profile-card small {
+  color: rgba(226, 232, 240, 0.78);
 }
 
-.context-label {
+.worker-profile-card em {
   display: inline-flex;
-  padding: 4px 8px;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  color: #22c55e;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.worker-profile-card em::before {
+  content: '';
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  background: currentColor;
 }
 
 :deep(.ant-menu) {
   background: transparent;
   border-inline-end: 0 !important;
-  padding: 0 12px 12px;
+  padding: 12px 10px 170px;
 }
 
-:deep(.ant-menu-light .ant-menu-item) {
+:deep(.ant-menu-dark .ant-menu-item) {
   margin-inline: 0;
-  margin-block: 6px;
+  margin-block: 4px;
   height: 44px;
   line-height: 44px;
-  border-radius: 12px;
-  font-weight: 600;
+  border-radius: 6px;
+  color: rgba(226, 232, 240, 0.9);
+  font-weight: 700;
 }
 
-:deep(.ant-menu-light .ant-menu-item-selected) {
-  background: linear-gradient(135deg, rgba(180, 83, 9, 0.16), rgba(120, 113, 108, 0.12));
+:deep(.ant-menu-dark .ant-menu-item-selected) {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.72), rgba(249, 115, 22, 0.42));
+  color: #fff;
+}
+
+:deep(.ant-menu-item-disabled) {
+  opacity: 0.62;
 }
 
 :deep(.ant-layout-sider-trigger) {
   display: grid;
   place-items: center;
-  width: 42px !important;
-  height: 42px !important;
-  right: -21px;
-  bottom: auto;
-  top: 92px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
-  color: #4b3f31;
-  border: 1px solid rgba(191, 168, 138, 0.3);
-  box-shadow:
-    0 10px 28px rgba(17, 24, 39, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  z-index: 3;
+  background: rgba(7, 25, 43, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
-  height: auto;
-  padding: 18px 26px 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.18)),
-    rgba(247, 242, 235, 0.62);
-  backdrop-filter: blur(24px) saturate(135%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    inset 0 -1px 0 rgba(120, 109, 96, 0.08);
+  gap: 18px;
+  height: 68px;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .header-intro {
   min-width: 0;
-}
-
-.header-title-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  flex: 0 0 auto;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
-.header-title {
-  position: relative;
-  z-index: 1;
-  font-size: 30px;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.04em;
-}
-
-.header-title-glow {
-  width: 110px;
-  height: 24px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--role-soft, rgba(59, 130, 246, 0.15)), transparent);
-  filter: blur(10px);
-}
-
-.header-subtitle {
-  margin-top: 6px;
-  color: #7c6f61;
-}
-
-.header-command-bar {
+.header-search {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.46);
-  border: 1px solid rgba(255, 255, 255, 0.64);
-  box-shadow:
-    0 12px 30px rgba(17, 24, 39, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  width: min(420px, 38vw);
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  color: #64748b;
 }
 
-.role-pill {
-  margin-inline: 2px;
-  padding-inline: 10px;
+.header-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #0f172a;
+  background: transparent;
+  font: inherit;
+}
+
+.header-title {
+  color: #111827;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.icon-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: #f1f5f9;
+}
+
+.with-badge span {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
   font-weight: 700;
 }
 
 .profile-button {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 138px;
-  height: 42px;
-  justify-content: space-between;
-  border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(17, 24, 39, 0.08);
+  min-width: 184px;
+  height: 44px;
+  padding: 0 8px 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
 }
 
 .profile-avatar {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--role-color-start, #1677ff), var(--role-color-end, #0f4fb8));
+  background: linear-gradient(145deg, #f59e0b, #0f62d6);
   color: #fff;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.profile-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.profile-copy strong {
+  max-width: 110px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-copy small {
+  color: #64748b;
+  font-size: 11px;
 }
 
 .content-area {
@@ -463,29 +661,21 @@ function logout() {
 }
 
 @media (max-width: 768px) {
-  :deep(.ant-layout-sider-trigger) {
-    top: 84px;
-  }
-
   .app-header {
-    padding: 16px;
-    align-items: flex-start;
+    height: auto;
+    padding: 14px;
     flex-direction: column;
+    align-items: stretch;
   }
 
+  .header-search,
   .header-actions {
     width: 100%;
-    justify-content: flex-start;
-  }
-
-  .header-title {
-    font-size: 24px;
-  }
-
-  .header-command-bar {
-    width: 100%;
     justify-content: space-between;
-    flex-wrap: wrap;
+  }
+
+  .profile-button {
+    min-width: 0;
   }
 }
 </style>
