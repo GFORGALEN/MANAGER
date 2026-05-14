@@ -15,12 +15,14 @@ namespace ConstructionManagement.Services
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<AttachmentService> _logger;
+        private readonly IAuditLogService _auditLogService;
 
-        public AttachmentService(AppDbContext context, IWebHostEnvironment environment, ILogger<AttachmentService> logger)
+        public AttachmentService(AppDbContext context, IWebHostEnvironment environment, ILogger<AttachmentService> logger, IAuditLogService auditLogService)
         {
             _context = context;
             _environment = environment;
             _logger = logger;
+            _auditLogService = auditLogService;
         }
 
         public async Task<PagedResultDto<AttachmentListDto>?> GetProjectAttachmentsAsync(Guid projectId, AttachmentQueryDto query, CancellationToken cancellationToken = default)
@@ -64,7 +66,7 @@ namespace ConstructionManagement.Services
             return attachment.ToDetailDto();
         }
 
-        public async Task<AttachmentDetailDto?> CreateAttachmentAsync(Guid projectId, CreateAttachmentDto request, CancellationToken cancellationToken = default)
+        public async Task<AttachmentDetailDto?> CreateAttachmentAsync(Guid projectId, CreateAttachmentDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             if (!await _context.Projects.AnyAsync(project => project.ProjectId == projectId, cancellationToken))
             {
@@ -85,11 +87,12 @@ namespace ConstructionManagement.Services
 
             _context.Attachments.Add(attachment);
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Attachment", attachment.AttachmentId, "Created", null, null, attachment.FileName, $"Attachment metadata created for project {projectId}", cancellationToken);
             _logger.LogInformation("Attachment metadata {AttachmentId} created for project {ProjectId}", attachment.AttachmentId, projectId);
             return attachment.ToDetailDto();
         }
 
-        public async Task<AttachmentDetailDto?> UpdateAttachmentAsync(Guid id, UpdateAttachmentDto request, CancellationToken cancellationToken = default)
+        public async Task<AttachmentDetailDto?> UpdateAttachmentAsync(Guid id, UpdateAttachmentDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             var attachment = await _context.Attachments.FindAsync([id], cancellationToken);
             if (attachment is null)
@@ -103,10 +106,11 @@ namespace ConstructionManagement.Services
             attachment.ContentType = string.IsNullOrWhiteSpace(request.ContentType) ? null : request.ContentType.Trim();
 
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Attachment", attachment.AttachmentId, "Updated", null, null, attachment.FileName, "Attachment metadata updated", cancellationToken);
             return attachment.ToDetailDto();
         }
 
-        public async Task<AttachmentDetailDto?> UploadAttachmentAsync(Guid projectId, IFormFile file, CancellationToken cancellationToken = default)
+        public async Task<AttachmentDetailDto?> UploadAttachmentAsync(Guid projectId, IFormFile file, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             if (!await _context.Projects.AnyAsync(project => project.ProjectId == projectId, cancellationToken))
             {
@@ -155,11 +159,12 @@ namespace ConstructionManagement.Services
 
             _context.Attachments.Add(attachment);
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Attachment", attachment.AttachmentId, "Uploaded", null, null, attachment.FileName, $"Attachment uploaded for project {projectId}", cancellationToken);
             _logger.LogInformation("Attachment {AttachmentId} uploaded for project {ProjectId}", attachment.AttachmentId, projectId);
             return attachment.ToDetailDto();
         }
 
-        public async Task<bool> DeleteAttachmentAsync(Guid id, CancellationToken cancellationToken = default)
+        public async Task<bool> DeleteAttachmentAsync(Guid id, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             var attachment = await _context.Attachments.FindAsync([id], cancellationToken);
             if (attachment is null)
@@ -174,8 +179,10 @@ namespace ConstructionManagement.Services
                 File.Delete(fullPath);
             }
 
+            var fileName = attachment.FileName;
             _context.Attachments.Remove(attachment);
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Attachment", id, "Deleted", null, fileName, null, "Attachment deleted", cancellationToken);
             _logger.LogInformation("Attachment {AttachmentId} deleted", id);
             return true;
         }

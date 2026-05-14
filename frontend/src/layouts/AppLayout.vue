@@ -153,7 +153,10 @@
 
         <div class="header-actions">
           <button class="icon-button" type="button"><MessageOutlined /></button>
-          <button class="icon-button with-badge" type="button"><BellOutlined /><span>12</span></button>
+          <button class="icon-button with-badge" type="button" @click="notificationDrawerOpen = true">
+            <BellOutlined />
+            <span v-if="notificationSummary.unreadCount > 0">{{ notificationSummary.unreadCount }}</span>
+          </button>
           <button class="icon-button" type="button"><QuestionCircleOutlined /></button>
           <LanguageSwitcher />
           <a-dropdown>
@@ -178,6 +181,34 @@
         <RouterView />
       </a-layout-content>
     </a-layout>
+
+    <a-drawer
+      v-model:open="notificationDrawerOpen"
+      title="Notification Center"
+      placement="right"
+      width="420"
+      @after-open-change="handleNotificationDrawerChange"
+    >
+      <a-space direction="vertical" size="middle" style="width: 100%">
+        <a-button block :disabled="notificationSummary.unreadCount === 0" @click="markAllNotificationsRead">
+          Mark all as read
+        </a-button>
+        <a-empty v-if="notificationSummary.items.length === 0" description="No notifications yet" />
+        <article
+          v-for="item in notificationSummary.items"
+          :key="item.notificationId"
+          :class="['notification-item', { unread: !item.isRead }]"
+          @click="openNotification(item)"
+        >
+          <div class="notification-topline">
+            <a-tag :color="notificationTagColor(item.category)">{{ item.category }}</a-tag>
+            <span>{{ formatNotificationTime(item.createdAt) }}</span>
+          </div>
+          <strong>{{ item.title }}</strong>
+          <p>{{ item.message }}</p>
+        </article>
+      </a-space>
+    </a-drawer>
   </a-layout>
 </template>
 
@@ -213,10 +244,28 @@ import { useI18n } from '@/services/i18n'
 import type { PagedResult } from '@/types/common'
 import type { ProjectListItem } from '@/types/project'
 
+interface NotificationItem {
+  notificationId: string
+  title: string
+  message: string
+  category: string
+  entityType?: string | null
+  entityId?: string | null
+  isRead: boolean
+  createdAt: string
+}
+
+interface NotificationSummary {
+  unreadCount: number
+  items: NotificationItem[]
+}
+
 const route = useRoute()
 const router = useRouter()
 const collapsed = ref(false)
 const sidebarProjects = ref<ProjectListItem[]>([])
+const notificationDrawerOpen = ref(false)
+const notificationSummary = ref<NotificationSummary>({ unreadCount: 0, items: [] })
 
 const currentUser = computed(() => getCurrentUser())
 const currentUserLabel = computed(() => getCurrentUserLabel())
@@ -308,7 +357,53 @@ async function fetchSidebarProjects() {
   }
 }
 
-onMounted(fetchSidebarProjects)
+async function fetchNotificationSummary() {
+  try {
+    const { data } = await api.get<NotificationSummary>('/notifications/summary')
+    notificationSummary.value = data
+  } catch {
+    notificationSummary.value = { unreadCount: 0, items: [] }
+  }
+}
+
+async function markAllNotificationsRead() {
+  await api.post('/notifications/read-all')
+  await fetchNotificationSummary()
+}
+
+async function openNotification(item: NotificationItem) {
+  if (!item.isRead) {
+    await api.patch(`/notifications/${item.notificationId}/read`)
+    await fetchNotificationSummary()
+  }
+
+  if (item.entityType === 'Task') {
+    router.push({ name: 'tasks' })
+    notificationDrawerOpen.value = false
+  } else if (item.entityType === 'Variation') {
+    router.push({ name: 'variations' })
+    notificationDrawerOpen.value = false
+  }
+}
+
+function handleNotificationDrawerChange(open: boolean) {
+  if (open) {
+    fetchNotificationSummary()
+  }
+}
+
+function notificationTagColor(category: string) {
+  return ({ Task: 'blue', Variation: 'orange', System: 'default' } as Record<string, string>)[category] ?? 'default'
+}
+
+function formatNotificationTime(value: string) {
+  return new Date(value).toLocaleString()
+}
+
+onMounted(() => {
+  fetchSidebarProjects()
+  fetchNotificationSummary()
+})
 </script>
 
 <style scoped>
@@ -583,6 +678,45 @@ onMounted(fetchSidebarProjects)
   color: #fff;
   font-size: 10px;
   line-height: 16px;
+  font-weight: 700;
+}
+
+.notification-item {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.notification-item.unread {
+  border-color: rgba(15, 98, 214, 0.34);
+  background: #f8fbff;
+}
+
+.notification-item strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.notification-item p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.notification-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-topline span {
+  color: #94a3b8;
+  font-size: 11px;
   font-weight: 700;
 }
 

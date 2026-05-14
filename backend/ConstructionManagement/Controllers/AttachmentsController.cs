@@ -2,6 +2,7 @@ using ConstructionManagement.DTOs.Attachments;
 using ConstructionManagement.DTOs.Common;
 using ConstructionManagement.Entities;
 using ConstructionManagement.Services;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -69,7 +70,7 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var attachment = await _attachmentService.CreateAttachmentAsync(projectId, request, cancellationToken);
+            var attachment = await _attachmentService.CreateAttachmentAsync(projectId, request, GetCurrentUserId(), cancellationToken);
             if (attachment is null)
             {
                 return NotFound();
@@ -92,7 +93,7 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var attachment = await _attachmentService.UpdateAttachmentAsync(id, request, cancellationToken);
+            var attachment = await _attachmentService.UpdateAttachmentAsync(id, request, GetCurrentUserId(), cancellationToken);
             if (attachment is null)
             {
                 return NotFound();
@@ -110,7 +111,7 @@ namespace ConstructionManagement.Controllers
         [HttpPost("api/projects/{projectId:guid}/attachments/upload")]
         public async Task<ActionResult<AttachmentDetailDto>> UploadAttachment(Guid projectId, IFormFile file, CancellationToken cancellationToken)
         {
-            var attachment = await _attachmentService.UploadAttachmentAsync(projectId, file, cancellationToken);
+            var attachment = await _attachmentService.UploadAttachmentAsync(projectId, file, GetCurrentUserId(), cancellationToken);
             if (attachment is null)
             {
                 return NotFound();
@@ -127,12 +128,19 @@ namespace ConstructionManagement.Controllers
         [HttpDelete("api/attachments/{id:guid}")]
         public async Task<IActionResult> DeleteAttachment(Guid id, CancellationToken cancellationToken)
         {
-            if (!await _attachmentService.DeleteAttachmentAsync(id, cancellationToken))
+            if (!await _attachmentService.DeleteAttachmentAsync(id, GetCurrentUserId(), cancellationToken))
             {
                 return NotFound();
             }
 
             return Ok();
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new UnauthorizedAccessException("Missing user id claim.");
+            return Guid.Parse(userIdValue);
         }
     }
 

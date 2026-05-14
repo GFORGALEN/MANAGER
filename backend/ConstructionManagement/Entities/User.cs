@@ -23,5 +23,11 @@ namespace ConstructionManagement.Entities
         public ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
 
         public ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
+
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+        public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+
+        public ICollection<VariationStatusHistory> VariationStatusHistory { get; set; } = new List<VariationStatusHistory>();
     }
 }

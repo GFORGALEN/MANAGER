@@ -11,11 +11,15 @@ namespace ConstructionManagement.Services
     {
         private readonly AppDbContext _context;
         private readonly ILogger<VariationService> _logger;
+        private readonly INotificationService _notificationService;
+        private readonly IAuditLogService _auditLogService;
 
-        public VariationService(AppDbContext context, ILogger<VariationService> logger)
+        public VariationService(AppDbContext context, ILogger<VariationService> logger, INotificationService notificationService, IAuditLogService auditLogService)
         {
             _context = context;
             _logger = logger;
+            _notificationService = notificationService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<PagedResultDto<VariationListDto>?> GetProjectVariationsAsync(Guid projectId, VariationQueryDto query, CancellationToken cancellationToken = default)
@@ -58,7 +62,9 @@ namespace ConstructionManagement.Services
 
         public async Task<VariationDetailDto?> GetVariationAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var variation = await _context.Variations.FindAsync([id], cancellationToken);
+            var variation = await _context.Variations
+                .Include(item => item.StatusHistory)
+                .FirstOrDefaultAsync(item => item.VariationId == id, cancellationToken);
             if (variation is null)
             {
                 _logger.LogWarning("Variation {VariationId} was not found", id);
@@ -68,7 +74,7 @@ namespace ConstructionManagement.Services
             return variation.ToDetailDto();
         }
 
-        public async Task<VariationDetailDto?> CreateVariationAsync(Guid projectId, CreateVariationDto request, CancellationToken cancellationToken = default)
+        public async Task<VariationDetailDto?> CreateVariationAsync(Guid projectId, CreateVariationDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             if (!await _context.Projects.AnyAsync(project => project.ProjectId == projectId, cancellationToken))
             {
@@ -89,10 +95,19 @@ namespace ConstructionManagement.Services
 
             _context.Variations.Add(variation);
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Variation", variation.VariationId, "Created", null, null, variation.Title, $"Variation created in project {projectId}", cancellationToken);
+            await _notificationService.CreateForRolesAsync(
+                ["Admin", "PM"],
+                "New variation created",
+                $"{variation.Title} is ready for review.",
+                "Variation",
+                "Variation",
+                variation.VariationId,
+                cancellationToken);
             return variation.ToDetailDto();
         }
 
-        public async Task<VariationDetailDto?> UpdateVariationAsync(Guid id, UpdateVariationDto request, CancellationToken cancellationToken = default)
+        public async Task<VariationDetailDto?> UpdateVariationAsync(Guid id, UpdateVariationDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             var variation = await _context.Variations.FindAsync([id], cancellationToken);
             if (variation is null)
@@ -106,22 +121,60 @@ namespace ConstructionManagement.Services
             variation.Amount = request.Amount;
 
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Variation", variation.VariationId, "Updated", null, null, variation.Title, "Variation details updated", cancellationToken);
             return variation.ToDetailDto();
         }
 
-        public async Task<VariationDetailDto?> UpdateVariationStatusAsync(Guid id, UpdateVariationStatusDto request, CancellationToken cancellationToken = default)
+        public async Task<VariationDetailDto?> UpdateVariationStatusAsync(Guid id, UpdateVariationStatusDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
-            var variation = await _context.Variations.FindAsync([id], cancellationToken);
+            var variation = await _context.Variations
+                .Include(item => item.StatusHistory)
+                .FirstOrDefaultAsync(item => item.VariationId == id, cancellationToken);
             if (variation is null)
             {
                 _logger.LogWarning("Variation {VariationId} was not found for status update", id);
                 return null;
             }
 
+            var oldStatus = variation.Status;
             variation.Status = StatusValidators.ValidateVariationStatus(request.Status);
+            var actorName = await ResolveActorNameAsync(actorUserId, cancellationToken);
+            variation.StatusHistory.Add(new VariationStatusHistory
+            {
+                VariationStatusHistoryId = Guid.NewGuid(),
+                VariationId = variation.VariationId,
+                FromStatus = oldStatus,
+                ToStatus = variation.Status,
+                Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim(),
+                ActorUserId = actorUserId,
+                ActorName = actorName,
+                CreatedAt = DateTime.UtcNow
+            });
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Variation", variation.VariationId, "StatusChanged", "Status", oldStatus, variation.Status, request.Comment, cancellationToken);
+            await _notificationService.CreateForRolesAsync(
+                ["Admin", "PM"],
+                "Variation workflow updated",
+                $"{variation.Title} moved from {oldStatus} to {variation.Status}.",
+                "Variation",
+                "Variation",
+                variation.VariationId,
+                cancellationToken);
             _logger.LogInformation("Variation {VariationId} status changed to {Status}", id, variation.Status);
             return variation.ToDetailDto();
+        }
+
+        private async Task<string> ResolveActorNameAsync(Guid? actorUserId, CancellationToken cancellationToken)
+        {
+            if (!actorUserId.HasValue)
+            {
+                return "System";
+            }
+
+            return await _context.Users
+                .Where(user => user.UserId == actorUserId.Value)
+                .Select(user => user.Name)
+                .FirstOrDefaultAsync(cancellationToken) ?? "Unknown user";
         }
     }
 }

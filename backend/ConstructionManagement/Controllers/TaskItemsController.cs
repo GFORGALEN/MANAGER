@@ -2,6 +2,7 @@ using ConstructionManagement.DTOs.Common;
 using ConstructionManagement.DTOs.Notifications;
 using ConstructionManagement.DTOs.Tasks;
 using ConstructionManagement.Services;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,6 +28,13 @@ namespace ConstructionManagement.Controllers
         /// </summary>
         /// <param name="projectId">The project ID.</param>
         /// <returns>All tasks under the specified project.</returns>
+        [Authorize(Roles = "Admin,PM")]
+        [HttpGet("api/tasks")]
+        public async Task<ActionResult<PagedResultDto<TaskItemListDto>>> GetTasks([FromQuery] TaskItemQueryDto query, CancellationToken cancellationToken)
+        {
+            return Ok(await _taskItemService.GetTasksAsync(query, cancellationToken));
+        }
+
         [Authorize(Roles = "Admin,PM")]
         [HttpGet("api/projects/{projectId:guid}/tasks")]
         public async Task<ActionResult<PagedResultDto<TaskItemListDto>>> GetProjectTasks(Guid projectId, [FromQuery] TaskItemQueryDto query, CancellationToken cancellationToken)
@@ -73,7 +81,7 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var task = await _taskItemService.CreateTaskAsync(projectId, request, cancellationToken);
+            var task = await _taskItemService.CreateTaskAsync(projectId, request, GetCurrentUserId(), cancellationToken);
             if (task is null)
             {
                 return NotFound();
@@ -121,7 +129,7 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var task = await _taskItemService.UpdateTaskAsync(id, request, cancellationToken);
+            var task = await _taskItemService.UpdateTaskAsync(id, request, GetCurrentUserId(), cancellationToken);
             if (task is null)
             {
                 return NotFound();
@@ -145,7 +153,7 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var task = await _taskItemService.UpdateTaskStatusAsync(id, request, cancellationToken);
+            var task = await _taskItemService.UpdateTaskStatusAsync(id, request, GetCurrentUserId(), cancellationToken);
             if (task is null)
             {
                 return NotFound();
@@ -200,6 +208,13 @@ namespace ConstructionManagement.Controllers
             }
 
             return Ok(result);
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new UnauthorizedAccessException("Missing user id claim.");
+            return Guid.Parse(userIdValue);
         }
     }
 }

@@ -29,6 +29,18 @@ namespace ConstructionManagement.DTOs.Variations
         public decimal Amount { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public List<VariationStatusHistoryDto> StatusHistory { get; set; } = [];
+    }
+
+    public class VariationStatusHistoryDto
+    {
+        public Guid VariationStatusHistoryId { get; set; }
+        public string FromStatus { get; set; } = string.Empty;
+        public string ToStatus { get; set; } = string.Empty;
+        public string? Comment { get; set; }
+        public Guid? ActorUserId { get; set; }
+        public string ActorName { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
     }
 
     /// <summary>
@@ -66,6 +78,8 @@ namespace ConstructionManagement.DTOs.Variations
         [Required]
         [MinLength(1)]
         public required string Status { get; set; }
+
+        public string? Comment { get; set; }
     }
 
     /// <summary>
@@ -118,7 +132,20 @@ namespace ConstructionManagement.DTOs.Variations
                 Description = variation.Description,
                 Amount = variation.Amount,
                 Status = variation.Status,
-                CreatedAt = variation.CreatedAt
+                CreatedAt = variation.CreatedAt,
+                StatusHistory = variation.StatusHistory
+                    .OrderByDescending(history => history.CreatedAt)
+                    .Select(history => new VariationStatusHistoryDto
+                    {
+                        VariationStatusHistoryId = history.VariationStatusHistoryId,
+                        FromStatus = history.FromStatus,
+                        ToStatus = history.ToStatus,
+                        Comment = history.Comment,
+                        ActorUserId = history.ActorUserId,
+                        ActorName = history.ActorName,
+                        CreatedAt = history.CreatedAt
+                    })
+                    .ToList()
             };
         }
     }

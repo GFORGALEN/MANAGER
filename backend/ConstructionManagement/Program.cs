@@ -91,6 +91,8 @@ builder.Services.AddScoped<IVariationService, VariationService>();
 builder.Services.AddScoped<IAttachmentService, AttachmentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddHttpClient<IProjectAiService, ProjectAiService>();
 builder.Services.AddHttpClient<ITaskDraftAiService, TaskDraftAiService>();
 builder.Services.AddHttpClient<ISmsService, TwilioSmsService>();

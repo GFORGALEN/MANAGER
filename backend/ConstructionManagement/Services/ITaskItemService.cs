@@ -8,13 +8,15 @@ namespace ConstructionManagement.Services
     {
         Task<PagedResultDto<TaskItemListDto>?> GetProjectTasksAsync(Guid projectId, TaskItemQueryDto query, CancellationToken cancellationToken = default);
 
+        Task<PagedResultDto<TaskItemListDto>> GetTasksAsync(TaskItemQueryDto query, CancellationToken cancellationToken = default);
+
         Task<TaskItemDetailDto?> GetTaskAsync(Guid id, CancellationToken cancellationToken = default);
 
-        Task<TaskItemDetailDto?> CreateTaskAsync(Guid projectId, CreateTaskItemDto request, CancellationToken cancellationToken = default);
+        Task<TaskItemDetailDto?> CreateTaskAsync(Guid projectId, CreateTaskItemDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default);
 
-        Task<TaskItemDetailDto?> UpdateTaskAsync(Guid id, UpdateTaskItemDto request, CancellationToken cancellationToken = default);
+        Task<TaskItemDetailDto?> UpdateTaskAsync(Guid id, UpdateTaskItemDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default);
 
-        Task<TaskItemDetailDto?> UpdateTaskStatusAsync(Guid id, UpdateTaskStatusDto request, CancellationToken cancellationToken = default);
+        Task<TaskItemDetailDto?> UpdateTaskStatusAsync(Guid id, UpdateTaskStatusDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default);
 
         Task<PagedResultDto<TaskItemListDto>> GetMyTasksAsync(Guid userId, TaskItemQueryDto query, CancellationToken cancellationToken = default);
 

@@ -55,6 +55,92 @@ namespace ConstructionManagement.Migrations
                     b.ToTable("Attachments");
                 });
 
+            modelBuilder.Entity("ConstructionManagement.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("AuditLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ActorName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FieldName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("AuditLogId");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.ToTable("AuditLogs");
+                });
+
+            modelBuilder.Entity("ConstructionManagement.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("NotificationId");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("ConstructionManagement.Entities.Project", b =>
                 {
                     b.Property<Guid>("ProjectId")
@@ -251,6 +337,45 @@ namespace ConstructionManagement.Migrations
                     b.ToTable("Variations");
                 });
 
+            modelBuilder.Entity("ConstructionManagement.Entities.VariationStatusHistory", b =>
+                {
+                    b.Property<Guid>("VariationStatusHistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActorName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("VariationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("VariationStatusHistoryId");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("VariationId");
+
+                    b.ToTable("VariationStatusHistory");
+                });
+
             modelBuilder.Entity("ConstructionManagement.Entities.Attachment", b =>
                 {
                     b.HasOne("ConstructionManagement.Entities.Project", "Project")
@@ -260,6 +385,27 @@ namespace ConstructionManagement.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("ConstructionManagement.Entities.AuditLog", b =>
+                {
+                    b.HasOne("ConstructionManagement.Entities.User", "ActorUser")
+                        .WithMany("AuditLogs")
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ActorUser");
+                });
+
+            modelBuilder.Entity("ConstructionManagement.Entities.Notification", b =>
+                {
+                    b.HasOne("ConstructionManagement.Entities.User", "RecipientUser")
+                        .WithMany("Notifications")
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecipientUser");
                 });
 
             modelBuilder.Entity("ConstructionManagement.Entities.TaskAssignment", b =>
@@ -310,6 +456,24 @@ namespace ConstructionManagement.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("ConstructionManagement.Entities.VariationStatusHistory", b =>
+                {
+                    b.HasOne("ConstructionManagement.Entities.User", "ActorUser")
+                        .WithMany("VariationStatusHistory")
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ConstructionManagement.Entities.Variation", "Variation")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("VariationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("Variation");
+                });
+
             modelBuilder.Entity("ConstructionManagement.Entities.Project", b =>
                 {
                     b.Navigation("Attachments");
@@ -321,14 +485,25 @@ namespace ConstructionManagement.Migrations
 
             modelBuilder.Entity("ConstructionManagement.Entities.User", b =>
                 {
+                    b.Navigation("AuditLogs");
+
                     b.Navigation("AssignedTasks");
 
+                    b.Navigation("Notifications");
+
                     b.Navigation("TaskAssignments");
+
+                    b.Navigation("VariationStatusHistory");
                 });
 
             modelBuilder.Entity("ConstructionManagement.Entities.TaskItem", b =>
                 {
                     b.Navigation("TaskAssignments");
+                });
+
+            modelBuilder.Entity("ConstructionManagement.Entities.Variation", b =>
+                {
+                    b.Navigation("StatusHistory");
                 });
 #pragma warning restore 612, 618
         }

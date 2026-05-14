@@ -118,7 +118,7 @@ namespace ConstructionManagement.Controllers
                 return NotFound();
             }
 
-            var attachment = await _attachmentService.UploadAttachmentAsync(task.ProjectId, file, cancellationToken);
+            var attachment = await _attachmentService.UploadAttachmentAsync(task.ProjectId, file, GetCurrentUserId(), cancellationToken);
             if (attachment is null)
             {
                 return NotFound();

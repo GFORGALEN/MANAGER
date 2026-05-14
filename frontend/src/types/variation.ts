@@ -8,6 +8,20 @@ export interface Variation {
   createdAt: string
 }
 
+export interface VariationStatusHistory {
+  variationStatusHistoryId: string
+  fromStatus: string
+  toStatus: string
+  comment?: string | null
+  actorUserId?: string | null
+  actorName: string
+  createdAt: string
+}
+
+export interface VariationDetail extends Variation {
+  statusHistory: VariationStatusHistory[]
+}
+
 export interface CreateVariationPayload {
   title: string
   description?: string | null
@@ -22,4 +36,5 @@ export interface UpdateVariationPayload {
 
 export interface UpdateVariationStatusPayload {
   status: 'Draft' | 'Submitted' | 'Approved' | 'Rejected' | 'NeedInfo'
+  comment?: string | null
 }

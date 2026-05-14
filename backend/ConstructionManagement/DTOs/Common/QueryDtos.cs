@@ -21,6 +21,14 @@ namespace ConstructionManagement.DTOs.Common
     {
         public string? Status { get; set; }
 
+        public string? Priority { get; set; }
+
+        public Guid? ProjectId { get; set; }
+
+        public Guid? AssignedUserId { get; set; }
+
+        public string? DueState { get; set; }
+
         [Range(1, int.MaxValue)]
         public int PageNumber { get; set; } = 1;
 
@@ -58,6 +66,30 @@ namespace ConstructionManagement.DTOs.Common
         public string? SortBy { get; set; }
 
         public string? SortOrder { get; set; }
+    }
+
+    public class AuditLogQueryDto
+    {
+        [Range(1, int.MaxValue)]
+        public int PageNumber { get; set; } = 1;
+
+        [Range(1, 100)]
+        public int PageSize { get; set; } = 20;
+
+        public string? EntityType { get; set; }
+
+        public Guid? EntityId { get; set; }
+    }
+
+    public class NotificationQueryDto
+    {
+        [Range(1, int.MaxValue)]
+        public int PageNumber { get; set; } = 1;
+
+        [Range(1, 100)]
+        public int PageSize { get; set; } = 20;
+
+        public bool? IsRead { get; set; }
     }
 
     public class UserQueryDto

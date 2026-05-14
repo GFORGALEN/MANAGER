@@ -1,6 +1,7 @@
 using ConstructionManagement.DTOs.Common;
 using ConstructionManagement.DTOs.Variations;
 using ConstructionManagement.Services;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -68,7 +69,7 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var variation = await _variationService.CreateVariationAsync(projectId, request, cancellationToken);
+            var variation = await _variationService.CreateVariationAsync(projectId, request, GetCurrentUserId(), cancellationToken);
             if (variation is null)
             {
                 return NotFound();
@@ -91,7 +92,7 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var variation = await _variationService.UpdateVariationAsync(id, request, cancellationToken);
+            var variation = await _variationService.UpdateVariationAsync(id, request, GetCurrentUserId(), cancellationToken);
             if (variation is null)
             {
                 return NotFound();
@@ -114,13 +115,20 @@ namespace ConstructionManagement.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var variation = await _variationService.UpdateVariationStatusAsync(id, request, cancellationToken);
+            var variation = await _variationService.UpdateVariationStatusAsync(id, request, GetCurrentUserId(), cancellationToken);
             if (variation is null)
             {
                 return NotFound();
             }
 
             return Ok(variation);
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new UnauthorizedAccessException("Missing user id claim.");
+            return Guid.Parse(userIdValue);
         }
     }
 }

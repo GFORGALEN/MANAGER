@@ -16,13 +16,17 @@ namespace ConstructionManagement.Services
         private readonly ILogger<TaskItemService> _logger;
         private readonly ISmsService _smsService;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
+        private readonly IAuditLogService _auditLogService;
 
-        public TaskItemService(AppDbContext context, ILogger<TaskItemService> logger, ISmsService smsService, IEmailService emailService)
+        public TaskItemService(AppDbContext context, ILogger<TaskItemService> logger, ISmsService smsService, IEmailService emailService, INotificationService notificationService, IAuditLogService auditLogService)
         {
             _context = context;
             _logger = logger;
             _smsService = smsService;
             _emailService = emailService;
+            _notificationService = notificationService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<PagedResultDto<TaskItemListDto>?> GetProjectTasksAsync(Guid projectId, TaskItemQueryDto query, CancellationToken cancellationToken = default)
@@ -67,6 +71,48 @@ namespace ConstructionManagement.Services
             };
         }
 
+        public async Task<PagedResultDto<TaskItemListDto>> GetTasksAsync(TaskItemQueryDto query, CancellationToken cancellationToken = default)
+        {
+            var tasks = _context.TaskItems.AsQueryable();
+
+            tasks = ApplyTaskFilters(tasks, query);
+
+            tasks = (query.SortBy?.ToLowerInvariant(), query.SortOrder?.ToLowerInvariant()) switch
+            {
+                ("title", "desc") => tasks.OrderByDescending(task => task.Title),
+                ("title", _) => tasks.OrderBy(task => task.Title),
+                ("priority", "desc") => tasks.OrderByDescending(task =>
+                    task.Priority == "Critical" ? 4 :
+                    task.Priority == "High" ? 3 :
+                    task.Priority == "Medium" ? 2 : 1),
+                ("priority", _) => tasks.OrderBy(task =>
+                    task.Priority == "Critical" ? 4 :
+                    task.Priority == "High" ? 3 :
+                    task.Priority == "Medium" ? 2 : 1),
+                ("duedate", "desc") => tasks.OrderByDescending(task => task.DueDate),
+                ("duedate", _) => tasks.OrderBy(task => task.DueDate),
+                _ => tasks
+                    .OrderBy(task => task.Status == "Blocked" ? 0 : 1)
+                    .ThenBy(task => task.DueDate)
+            };
+
+            var (items, totalCount) = await tasks
+                .Include(task => task.Project)
+                .Include(task => task.AssignedUser)
+                .Include(task => task.TaskAssignments)
+                .ThenInclude(taskAssignment => taskAssignment.User)
+                .Select(task => task.ToListDto())
+                .ToPagedResultAsync(query.PageNumber, query.PageSize, cancellationToken);
+
+            return new PagedResultDto<TaskItemListDto>
+            {
+                Items = items,
+                PageNumber = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalCount = totalCount
+            };
+        }
+
         public async Task<TaskItemDetailDto?> GetTaskAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var task = await _context.TaskItems
@@ -85,7 +131,7 @@ namespace ConstructionManagement.Services
             return task.ToDetailDto();
         }
 
-        public async Task<TaskItemDetailDto?> CreateTaskAsync(Guid projectId, CreateTaskItemDto request, CancellationToken cancellationToken = default)
+        public async Task<TaskItemDetailDto?> CreateTaskAsync(Guid projectId, CreateTaskItemDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             if (!await _context.Projects.AnyAsync(project => project.ProjectId == projectId, cancellationToken))
             {
@@ -126,11 +172,20 @@ namespace ConstructionManagement.Services
 
             _context.TaskItems.Add(task);
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Task", task.TaskItemId, "Created", null, null, task.Title, $"Task created in project {projectId}", cancellationToken);
+            await _notificationService.CreateForUsersAsync(
+                assignmentIds,
+                "New task assigned",
+                $"{task.Title} has been assigned to you.",
+                "Task",
+                "Task",
+                task.TaskItemId,
+                cancellationToken);
             _logger.LogInformation("Task {TaskId} created under project {ProjectId}", task.TaskItemId, projectId);
             return await GetTaskAsync(task.TaskItemId, cancellationToken);
         }
 
-        public async Task<TaskItemDetailDto?> UpdateTaskAsync(Guid id, UpdateTaskItemDto request, CancellationToken cancellationToken = default)
+        public async Task<TaskItemDetailDto?> UpdateTaskAsync(Guid id, UpdateTaskItemDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             var task = await _context.TaskItems
                 .Include(item => item.Project)
@@ -152,6 +207,7 @@ namespace ConstructionManagement.Services
             task.EstimatedHours = NormalizeEstimatedHours(request.EstimatedHours);
             task.StartDate = NormalizeStartDate(request.StartDate, task.StartDate);
             task.DueDate = request.DueDate;
+            var previousAssignmentIds = task.TaskAssignments.Select(taskAssignment => taskAssignment.UserId).ToHashSet();
             var assignmentIds = await ValidateAssignedUsersAsync(request.AssignedUserId, request.AssignedUserIds, cancellationToken);
             task.AssignedUserId = assignmentIds.FirstOrDefault();
             await SyncTaskAssignmentsAsync(task, assignmentIds, cancellationToken);
@@ -162,10 +218,20 @@ namespace ConstructionManagement.Services
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+            var newAssignmentIds = assignmentIds.Where(userId => !previousAssignmentIds.Contains(userId)).ToList();
+            await _auditLogService.RecordAsync(actorUserId, "Task", task.TaskItemId, "Updated", null, null, task.Title, "Task details updated", cancellationToken);
+            await _notificationService.CreateForUsersAsync(
+                newAssignmentIds,
+                "Task assigned",
+                $"{task.Title} has been assigned to you.",
+                "Task",
+                "Task",
+                task.TaskItemId,
+                cancellationToken);
             return task.ToDetailDto();
         }
 
-        public async Task<TaskItemDetailDto?> UpdateTaskStatusAsync(Guid id, UpdateTaskStatusDto request, CancellationToken cancellationToken = default)
+        public async Task<TaskItemDetailDto?> UpdateTaskStatusAsync(Guid id, UpdateTaskStatusDto request, Guid? actorUserId = null, CancellationToken cancellationToken = default)
         {
             var task = await _context.TaskItems
                 .Include(item => item.Project)
@@ -180,8 +246,18 @@ namespace ConstructionManagement.Services
                 return null;
             }
 
+            var oldStatus = task.Status;
             task.Status = StatusValidators.ValidateTaskStatus(request.Status);
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(actorUserId, "Task", task.TaskItemId, "StatusChanged", "Status", oldStatus, task.Status, $"Task status changed to {task.Status}", cancellationToken);
+            await _notificationService.CreateForUsersAsync(
+                task.TaskAssignments.Select(taskAssignment => taskAssignment.UserId),
+                "Task status changed",
+                $"{task.Title} moved from {oldStatus} to {task.Status}.",
+                "Task",
+                "Task",
+                task.TaskItemId,
+                cancellationToken);
             return task.ToDetailDto();
         }
 
@@ -261,8 +337,18 @@ namespace ConstructionManagement.Services
                 return null;
             }
 
+            var oldStatus = task.Status;
             task.Status = StatusValidators.ValidateTaskStatus(request.Status);
             await _context.SaveChangesAsync(cancellationToken);
+            await _auditLogService.RecordAsync(userId, "Task", task.TaskItemId, "StatusChanged", "Status", oldStatus, task.Status, $"Worker changed task status to {task.Status}", cancellationToken);
+            await _notificationService.CreateForRolesAsync(
+                ["Admin", "PM"],
+                "Worker updated task",
+                $"{task.Title} moved from {oldStatus} to {task.Status}.",
+                "Task",
+                "Task",
+                task.TaskItemId,
+                cancellationToken);
             return task.ToDetailDto();
         }
 
@@ -489,6 +575,45 @@ namespace ConstructionManagement.Services
                 result.SentCount);
 
             return result;
+        }
+
+        private static IQueryable<TaskItem> ApplyTaskFilters(IQueryable<TaskItem> tasks, TaskItemQueryDto query)
+        {
+            if (!string.IsNullOrWhiteSpace(query.Status))
+            {
+                var status = StatusValidators.ValidateTaskStatus(query.Status);
+                tasks = tasks.Where(task => task.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Priority))
+            {
+                var priority = NormalizePriority(query.Priority);
+                tasks = tasks.Where(task => task.Priority == priority);
+            }
+
+            if (query.ProjectId.HasValue)
+            {
+                tasks = tasks.Where(task => task.ProjectId == query.ProjectId.Value);
+            }
+
+            if (query.AssignedUserId.HasValue)
+            {
+                tasks = tasks.Where(task => task.TaskAssignments.Any(taskAssignment => taskAssignment.UserId == query.AssignedUserId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.DueState))
+            {
+                var now = DateTime.UtcNow;
+                tasks = query.DueState.Trim().ToLowerInvariant() switch
+                {
+                    "overdue" => tasks.Where(task => task.DueDate < now && task.Status != "Done"),
+                    "blocked" => tasks.Where(task => task.Status == "Blocked"),
+                    "slawatch" => tasks.Where(task => task.DueDate >= now && task.DueDate <= now.AddDays(3) && task.Status != "Done"),
+                    _ => tasks
+                };
+            }
+
+            return tasks;
         }
 
         private async Task<Guid?> ValidateAssignedUserAsync(Guid? assignedUserId, CancellationToken cancellationToken)

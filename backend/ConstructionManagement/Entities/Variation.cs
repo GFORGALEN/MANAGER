@@ -17,5 +17,7 @@ namespace ConstructionManagement.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public Project Project { get; set; } = null!;
+
+        public ICollection<VariationStatusHistory> StatusHistory { get; set; } = new List<VariationStatusHistory>();
     }
 }

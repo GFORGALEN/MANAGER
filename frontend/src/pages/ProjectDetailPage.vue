@@ -188,7 +188,10 @@
                     </a-select>
                   </template>
                   <template v-else-if="column.key === 'actions'">
-                    <a-button size="small" @click="openEditVariationModal(record)">Edit</a-button>
+                    <a-space>
+                      <a-button size="small" @click="openEditVariationModal(record)">Edit</a-button>
+                      <a-button size="small" @click="openVariationHistory(record.variationId)">History</a-button>
+                    </a-space>
                   </template>
                 </template>
               </a-table>
@@ -477,6 +480,19 @@
       </a-form>
     </a-modal>
 
+    <a-modal v-model:open="variationHistoryOpen" title="Variation Workflow History" :footer="null" width="680px">
+      <a-spin :spinning="variationHistoryLoading">
+        <a-empty v-if="selectedVariationHistory.length === 0" description="No workflow history yet" />
+        <a-timeline v-else>
+          <a-timeline-item v-for="item in selectedVariationHistory" :key="item.variationStatusHistoryId">
+            <strong>{{ item.fromStatus }} -> {{ item.toStatus }}</strong>
+            <div class="muted">{{ item.actorName }} / {{ formatDate(item.createdAt) }}</div>
+            <p v-if="item.comment" class="workflow-comment">{{ item.comment }}</p>
+          </a-timeline-item>
+        </a-timeline>
+      </a-spin>
+    </a-modal>
+
     <a-modal
       v-model:open="attachmentModalOpen"
       :title="attachmentModalMode === 'create' ? 'Create Attachment Metadata' : 'Edit Attachment Metadata'"
@@ -517,7 +533,7 @@ import type { PagedResult } from '@/types/common'
 import type { AiWeeklySummary, AiWeeklySummaryRequest, ProjectDetail, UpdateProjectPayload } from '@/types/project'
 import type { AiTaskDraftRequest, AiTaskDraftSuggestion, CreateTaskPayload, TaskEmailResult, TaskItem, UpdateTaskPayload, UpdateTaskStatusPayload } from '@/types/task'
 import type { UserSummary } from '@/types/user'
-import type { CreateVariationPayload, UpdateVariationPayload, UpdateVariationStatusPayload, Variation } from '@/types/variation'
+import type { CreateVariationPayload, UpdateVariationPayload, UpdateVariationStatusPayload, Variation, VariationDetail, VariationStatusHistory } from '@/types/variation'
 
 const route = useRoute()
 const router = useRouter()
@@ -560,6 +576,9 @@ const selectedEmailTask = ref<TaskItem | null>(null)
 const variationModalOpen = ref(false)
 const variationModalMode = ref<'create' | 'edit'>('create')
 const variationSaving = ref(false)
+const variationHistoryOpen = ref(false)
+const variationHistoryLoading = ref(false)
+const selectedVariationHistory = ref<VariationStatusHistory[]>([])
 const selectedVariationId = ref<string | null>(null)
 
 const attachmentModalOpen = ref(false)
@@ -661,7 +680,7 @@ const variationColumns = [
   { title: 'Description', dataIndex: 'description', key: 'description' },
   { title: 'Amount', dataIndex: 'amount', key: 'amount' },
   { title: 'Status', dataIndex: 'status', key: 'status', width: 160 },
-  { title: 'Actions', key: 'actions', width: 100 },
+  { title: 'Actions', key: 'actions', width: 170 },
 ]
 
 const attachmentColumns = [
@@ -1058,12 +1077,27 @@ async function submitVariation() {
 }
 
 async function updateVariationStatus(variationId: string, status: UpdateVariationStatusPayload['status']) {
+  const comment = window.prompt('Add an approval note, rejection reason, or request for more information:', '')
   try {
-    await api.patch(`/variations/${variationId}/status`, { status })
+    await api.patch(`/variations/${variationId}/status`, { status, comment: comment || null })
     message.success('Variation status updated.')
     await fetchVariations()
   } catch {
     message.error('Failed to update variation status.')
+  }
+}
+
+async function openVariationHistory(variationId: string) {
+  variationHistoryOpen.value = true
+  variationHistoryLoading.value = true
+  selectedVariationHistory.value = []
+  try {
+    const { data } = await api.get<VariationDetail>(`/variations/${variationId}`)
+    selectedVariationHistory.value = data.statusHistory
+  } catch {
+    message.error('Failed to load variation history.')
+  } finally {
+    variationHistoryLoading.value = false
   }
 }
 
@@ -1416,6 +1450,12 @@ onMounted(() => {
 
 .muted {
   color: #64748b;
+}
+
+.workflow-comment {
+  margin: 6px 0 0;
+  color: #334155;
+  line-height: 1.55;
 }
 
 .project-workspace-card :deep(.ant-tabs-nav) {

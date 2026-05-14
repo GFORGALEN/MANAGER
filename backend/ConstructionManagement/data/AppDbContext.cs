@@ -22,6 +22,12 @@ namespace ConstructionManagement.Data
 
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
 
+        public DbSet<Notification> Notifications { get; set; }
+
+        public DbSet<AuditLog> AuditLogs { get; set; }
+
+        public DbSet<VariationStatusHistory> VariationStatusHistory { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Project>()
@@ -68,6 +74,30 @@ namespace ConstructionManagement.Data
                 .WithMany(project => project.Variations)
                 .HasForeignKey(variation => variation.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VariationStatusHistory>()
+                .HasOne(history => history.Variation)
+                .WithMany(variation => variation.StatusHistory)
+                .HasForeignKey(history => history.VariationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VariationStatusHistory>()
+                .HasOne(history => history.ActorUser)
+                .WithMany(user => user.VariationStatusHistory)
+                .HasForeignKey(history => history.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(notification => notification.RecipientUser)
+                .WithMany(user => user.Notifications)
+                .HasForeignKey(notification => notification.RecipientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(auditLog => auditLog.ActorUser)
+                .WithMany(user => user.AuditLogs)
+                .HasForeignKey(auditLog => auditLog.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Attachment>()
                 .HasOne(attachment => attachment.Project)
